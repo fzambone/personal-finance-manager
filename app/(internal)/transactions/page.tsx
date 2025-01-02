@@ -1,13 +1,16 @@
-"use server";
+"use client";
 
-import { getTransactions } from "@/services/transactions";
+import {
+  getTransactions,
+  getTransactionFormOptions,
+} from "@/services/transactions";
 import GenericList from "@/components/Generic/List";
 import Badge from "@/components/Generic/Badge";
 import { formatCurrency } from "@/utils/formatCurrency";
 import TransactionActions from "@/components/Transactions/TransactionActions";
 import { Transaction } from "@/app/types/transaction";
 import { Columns } from "@/components/Generic/List";
-import { Suspense } from "react";
+import { useEffect, useState } from "react";
 
 type StatusType =
   | "pending"
@@ -16,8 +19,54 @@ type StatusType =
   | "processing"
   | "cancelled";
 
-async function TransactionsList() {
-  const transactions = await getTransactions();
+type FormOptions = {
+  types: { label: string; value: string }[];
+  categories: { label: string; value: string }[];
+  paymentMethods: { label: string; value: string }[];
+};
+
+function TransactionsList() {
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [formOptions, setFormOptions] = useState<FormOptions | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const loadData = async () => {
+    try {
+      setIsLoading(true);
+      const [transactionsData, options] = await Promise.all([
+        getTransactions(),
+        // Get form options without user dependency
+        getTransactionFormOptions(),
+      ]);
+      setTransactions(transactionsData);
+      setFormOptions(options);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Function to optimistically update a transaction
+  const handleTransactionUpdate = (
+    id: string,
+    updatedData: Partial<Transaction>
+  ) => {
+    setTransactions((current) =>
+      current.map((transaction) =>
+        transaction.id === id ? { ...transaction, ...updatedData } : transaction
+      )
+    );
+  };
+
+  // Function to optimistically delete a transaction
+  const handleTransactionDelete = (id: string) => {
+    setTransactions((current) =>
+      current.filter((transaction) => transaction.id !== id)
+    );
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const transactionTableColumns: Columns<Transaction>[] = [
     { key: "date", label: "Date" },
@@ -57,12 +106,39 @@ async function TransactionsList() {
       key: "actions",
       label: "Actions",
       renderCell: (row: Transaction) => (
-        <TransactionActions id={row.id} data={row} />
+        <TransactionActions
+          id={row.id}
+          data={row}
+          formOptions={formOptions}
+          onOptimisticUpdate={handleTransactionUpdate}
+          onOptimisticDelete={handleTransactionDelete}
+        />
       ),
     },
   ];
 
-  return <GenericList columns={transactionTableColumns} data={transactions} />;
+  return (
+    <GenericList
+      columns={transactionTableColumns.map((column) =>
+        column.key === "actions"
+          ? {
+              ...column,
+              renderCell: (row: Transaction) => (
+                <TransactionActions
+                  id={row.id}
+                  data={row}
+                  formOptions={formOptions}
+                  onOptimisticUpdate={handleTransactionUpdate}
+                  onOptimisticDelete={handleTransactionDelete}
+                />
+              ),
+            }
+          : column
+      )}
+      data={transactions}
+      isLoading={isLoading}
+    />
+  );
 }
 
 function TransactionsLoading() {
@@ -82,7 +158,7 @@ function TransactionsLoading() {
   );
 }
 
-export default async function TransactionsPage() {
+export default function TransactionsPage() {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -90,9 +166,7 @@ export default async function TransactionsPage() {
           Transactions
         </h1>
       </div>
-      <Suspense fallback={<TransactionsLoading />}>
-        <TransactionsList />
-      </Suspense>
+      <TransactionsList />
     </div>
   );
 }

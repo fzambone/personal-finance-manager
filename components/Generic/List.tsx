@@ -3,6 +3,7 @@ import { safeDisplay } from "@/utils/display";
 type GenericListProps<T> = {
   data: T[];
   columns: Columns<T>[];
+  isLoading?: boolean;
 };
 
 export type Columns<T> = {
@@ -11,7 +12,11 @@ export type Columns<T> = {
   renderCell?: (row: T) => React.ReactNode;
 };
 
-export default function GenericList<T>({ columns, data }: GenericListProps<T>) {
+export default function GenericList<T>({
+  columns,
+  data,
+  isLoading,
+}: GenericListProps<T>) {
   return (
     <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-800">
       <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
@@ -27,7 +32,11 @@ export default function GenericList<T>({ columns, data }: GenericListProps<T>) {
             ))}
           </tr>
         </thead>
-        <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800">
+        <tbody
+          className={`bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800 ${
+            isLoading ? "opacity-50" : ""
+          }`}
+        >
           {data.map((row, i) => (
             <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
               {columns.map((column) => (
@@ -44,6 +53,11 @@ export default function GenericList<T>({ columns, data }: GenericListProps<T>) {
           ))}
         </tbody>
       </table>
+      {isLoading && (
+        <div className="absolute inset-0 bg-white/50 dark:bg-gray-900/50 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+        </div>
+      )}
     </div>
   );
 }
