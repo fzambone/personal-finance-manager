@@ -1,6 +1,6 @@
 "use client";
 
-import { Transaction } from "@/app/types/transaction";
+import { Transaction, TransactionType } from "@/app/types/transaction";
 import { updateTransaction } from "@/app/actions/transactions";
 import { formatCurrency } from "@/utils/formatCurrency";
 import Form, { Field } from "../Generic/Form";
@@ -107,6 +107,11 @@ export default function TransactionForm({
         throw new Error("Invalid amount format");
       }
 
+      // Get the selected type's label
+      const selectedType = formOptions.types
+        .find((t) => t.value === data.type_id)
+        ?.label.toUpperCase() as TransactionType;
+
       // Prepare the updated transaction data
       const updatedData: Partial<Transaction> = {
         name: data.name,
@@ -115,8 +120,8 @@ export default function TransactionForm({
         type_id: data.type_id,
         category_id: data.category_id,
         payment_method_id: data.payment_method_id,
-        // Map the updated type and category names from options
-        type: transaction.type, // Keep the original type (EXPENSE/INCOME)
+        // Map the updated names from options
+        type: selectedType,
         category:
           formOptions.categories.find((c) => c.value === data.category_id)
             ?.label || transaction.category,
