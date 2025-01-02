@@ -1,6 +1,34 @@
 import { Transaction, TransactionType } from "@/app/types/transaction";
 import { prisma } from "@/lib/db";
-import { Prisma } from "@prisma/client";
+
+type TransactionResult = {
+  id: string;
+  user_id: string;
+  type_id: string;
+  category_id: string;
+  payment_method_id: string;
+  transaction_date: Date;
+  description: string | null;
+  amount: number;
+  users: { first_name: string };
+  transaction_types: { name: string };
+  categories: { name: string };
+  payment_methods: { name: string };
+  transaction_status: { name: string };
+};
+
+type FormOption = {
+  id: string;
+  name: string;
+};
+
+interface PrismaError extends Error {
+  code?: string;
+}
+
+function isPrismaError(error: unknown): error is PrismaError {
+  return error instanceof Error && "code" in error;
+}
 
 export class TransactionError extends Error {
   constructor(message: string, public readonly cause?: unknown) {
@@ -52,7 +80,7 @@ class TransactionServiceImpl implements TransactionService {
         orderBy: { transaction_date: "desc" },
       });
 
-      return transactions.map((t) => ({
+      return transactions.map((t: TransactionResult) => ({
         id: t.id,
         user_id: t.user_id,
         type_id: t.type_id,
@@ -96,15 +124,15 @@ class TransactionServiceImpl implements TransactionService {
       ]);
 
       return {
-        types: types.map((type) => ({
+        types: types.map((type: FormOption) => ({
           label: type.name.charAt(0) + type.name.slice(1).toLowerCase(),
           value: type.id,
         })),
-        categories: categories.map((category) => ({
+        categories: categories.map((category: FormOption) => ({
           label: category.name,
           value: category.id,
         })),
-        paymentMethods: paymentMethods.map((method) => ({
+        paymentMethods: paymentMethods.map((method: FormOption) => ({
           label: method.name,
           value: method.id,
         })),
@@ -120,10 +148,8 @@ class TransactionServiceImpl implements TransactionService {
         where: { id },
       });
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        if (error.code === "P2025") {
-          throw new TransactionError("Transaction not found");
-        }
+      if (isPrismaError(error) && error.code === "P2025") {
+        throw new TransactionError("Transaction not found");
       }
       throw new TransactionError("Failed to delete transaction", error);
     }
@@ -147,10 +173,8 @@ class TransactionServiceImpl implements TransactionService {
         },
       });
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        if (error.code === "P2025") {
-          throw new TransactionError("Transaction not found");
-        }
+      if (isPrismaError(error) && error.code === "P2025") {
+        throw new TransactionError("Transaction not found");
       }
       throw new TransactionError("Failed to update transaction", error);
     }
