@@ -47,8 +47,13 @@ export default function Modal({
             <Dialog.Title className="text-lg font-semibold text-gray-900 dark:text-white">
               {title}
             </Dialog.Title>
-            <Dialog.Close className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
-              <XMarkIcon className="h-5 w-5" />
+            <Dialog.Close asChild>
+              <button
+                className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
+                aria-label="Close"
+              >
+                <XMarkIcon className="h-5 w-5" aria-hidden="true" />
+              </button>
             </Dialog.Close>
           </div>
 

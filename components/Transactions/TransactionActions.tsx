@@ -110,6 +110,7 @@ export default function TransactionActions({
         isOpen={showEditModal}
         onClose={handleCloseEdit}
         title="Edit Transaction"
+        description={`Edit details for transaction "${data.name}"`}
       >
         <TransactionForm
           transaction={data}

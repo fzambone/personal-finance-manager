@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { formatCurrency } from "@/utils/formatCurrency";
 
 export type Field = {
   name: string;
@@ -30,23 +31,60 @@ export default function Form<T>({
   submitText = "Submit",
   disabled = false,
 }: FormProps<T>) {
-  const [formData, setFormData] = useState<Record<string, any>>(
-    initialData || {}
-  );
+  const [formData, setFormData] = useState<Record<string, any>>(() => {
+    if (!initialData) return {};
+
+    // Format initial data
+    return fields.reduce((acc, field) => {
+      if (field.name === "amount" && field.inputMode === "numeric") {
+        acc[field.name] = formatCurrency(initialData[field.name] || 0);
+      } else {
+        acc[field.name] = initialData[field.name] || "";
+      }
+      return acc;
+    }, {} as Record<string, any>);
+  });
 
   useEffect(() => {
     if (initialData) {
-      setFormData(initialData);
+      // Format data when initialData changes
+      setFormData(
+        fields.reduce((acc, field) => {
+          if (field.name === "amount" && field.inputMode === "numeric") {
+            acc[field.name] = formatCurrency(initialData[field.name] || 0);
+          } else {
+            acc[field.name] = initialData[field.name] || "";
+          }
+          return acc;
+        }, {} as Record<string, any>)
+      );
     }
-  }, [initialData]);
+  }, [initialData, fields]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await onSubmit(formData as T);
   };
 
-  const handleChange = (name: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [name]: value }));
+  const handleChange = (name: string, value: string, field: Field) => {
+    let finalValue = value;
+
+    // Handle currency formatting for amount field
+    if (name === "amount" && field.inputMode === "numeric") {
+      // Remove all non-numeric characters
+      const numericValue = value.replace(/\D/g, "");
+      if (numericValue) {
+        // Convert the numeric string to cents
+        const cents = parseInt(numericValue, 10);
+        if (!isNaN(cents)) {
+          finalValue = formatCurrency(cents);
+        }
+      } else {
+        finalValue = "";
+      }
+    }
+
+    setFormData((prev) => ({ ...prev, [name]: finalValue }));
   };
 
   return (
@@ -70,7 +108,9 @@ export default function Form<T>({
                 id={field.name}
                 name={field.name}
                 value={formData[field.name] || ""}
-                onChange={(e) => handleChange(field.name, e.target.value)}
+                onChange={(e) =>
+                  handleChange(field.name, e.target.value, field)
+                }
                 required={field.required}
                 disabled={disabled}
                 className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md dark:bg-gray-700 dark:text-white"
@@ -88,7 +128,9 @@ export default function Form<T>({
                 name={field.name}
                 id={field.name}
                 value={formData[field.name] || ""}
-                onChange={(e) => handleChange(field.name, e.target.value)}
+                onChange={(e) =>
+                  handleChange(field.name, e.target.value, field)
+                }
                 required={field.required}
                 placeholder={field.placeholder}
                 inputMode={field.inputMode}

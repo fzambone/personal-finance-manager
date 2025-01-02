@@ -14,6 +14,7 @@ export type TransactionFormData = {
 };
 
 function parseCurrencyInput(value: string): number {
+  // Remove all non-numeric characters and convert to cents
   const numericValue = value.replace(/\D/g, "");
   return parseInt(numericValue, 10) || 0;
 }
