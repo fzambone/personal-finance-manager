@@ -3,7 +3,9 @@
 import { Transaction } from "@/app/types/transaction";
 import { getTransactionFormOptions } from "@/services/transactions";
 import { updateTransaction } from "@/app/actions/transactions";
+import { formatCurrency } from "@/utils/formatCurrency";
 import Form, { Field } from "../Generic/Form";
+import FormSkeleton from "../Skeletons/FormSkeleton";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -17,6 +19,13 @@ type FormOptions = {
   categories: { label: string; value: string }[];
   paymentMethods: { label: string; value: string }[];
 };
+
+function parseCurrencyInput(value: string): number {
+  // Remove all non-numeric characters
+  const numericValue = value.replace(/\D/g, "");
+  // Convert string to number
+  return parseInt(numericValue, 10) || 0;
+}
 
 export default function TransactionForm({
   transaction,
@@ -44,7 +53,7 @@ export default function TransactionForm({
   }, [transaction.user_id]);
 
   if (isLoading || !options) {
-    return <div className="p-4 text-center">Loading form options...</div>;
+    return <FormSkeleton />;
   }
 
   const fields: Field[] = [
@@ -57,10 +66,12 @@ export default function TransactionForm({
     },
     {
       name: "amount",
-      label: "Amount (in cents)",
-      type: "number",
-      value: transaction.amount,
+      label: "Amount",
+      type: "text",
+      value: formatCurrency(transaction.amount),
       required: true,
+      placeholder: "R$ 0,00",
+      inputMode: "numeric",
     },
     {
       name: "date",
@@ -97,7 +108,14 @@ export default function TransactionForm({
 
   const handleSubmit = async (data: Record<string, any>) => {
     try {
-      await updateTransaction(transaction.id, data);
+      const amountInCents = parseCurrencyInput(data.amount);
+      if (isNaN(amountInCents)) {
+        throw new Error("Invalid amount format");
+      }
+      await updateTransaction(transaction.id, {
+        ...data,
+        amount: amountInCents,
+      });
       router.refresh();
       onClose();
     } catch (error) {

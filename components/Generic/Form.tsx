@@ -1,6 +1,7 @@
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
+import { formatCurrency } from "@/utils/formatCurrency";
 
 export type Field = {
   name: string;
@@ -10,6 +11,17 @@ export type Field = {
   options?: { label: string; value: any }[];
   required?: boolean;
   placeholder?: string;
+  step?: string;
+  pattern?: string;
+  inputMode?:
+    | "none"
+    | "text"
+    | "decimal"
+    | "numeric"
+    | "tel"
+    | "search"
+    | "email"
+    | "url";
 };
 
 type FormProps = {
@@ -22,6 +34,21 @@ type FormProps = {
   children?: ReactNode;
 };
 
+const baseInputClasses = `
+  w-full rounded-lg
+  border border-gray-300 dark:border-gray-600
+  bg-white dark:bg-gray-700
+  px-3 py-2 text-sm
+  text-gray-900 dark:text-gray-100
+  placeholder-gray-400 dark:placeholder-gray-500
+  focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
+  focus:border-transparent
+  disabled:bg-gray-50 dark:disabled:bg-gray-800
+  disabled:text-gray-500 dark:disabled:text-gray-400
+  disabled:cursor-not-allowed
+  transition-colors duration-200
+`;
+
 export default function Form({
   fields,
   onSubmit,
@@ -31,38 +58,60 @@ export default function Form({
   initialData = {},
   children,
 }: FormProps) {
+  const [formValues, setFormValues] = useState<Record<string, any>>(() => {
+    return fields.reduce((acc, field) => {
+      let value = initialData[field.name] || field.value;
+
+      // Format initial amount value
+      if (field.name === "amount" && typeof value === "number") {
+        value = formatCurrency(value);
+      }
+
+      acc[field.name] = value;
+      return acc;
+    }, {} as Record<string, any>);
+  });
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const data: Record<string, any> = {};
+    await onSubmit(formValues);
+  };
 
-    // Convert form data to object with proper types
-    for (const [key, value] of formData.entries()) {
-      data[key] = value;
+  const handleInputChange = (field: Field, value: string) => {
+    let finalValue = value;
+
+    // Handle currency formatting for amount field
+    if (field.name === "amount") {
+      // Remove all non-numeric characters
+      const numericValue = value.replace(/\D/g, "");
+
+      if (numericValue) {
+        // Convert the numeric string to cents
+        const cents = parseInt(numericValue, 10);
+        if (!isNaN(cents)) {
+          finalValue = formatCurrency(cents);
+        }
+      } else {
+        finalValue = "";
+      }
     }
 
-    // Convert number fields
-    fields.forEach((field) => {
-      if (field.type === "number" && data[field.name]) {
-        data[field.name] = Number(data[field.name]);
-      }
-    });
-
-    await onSubmit(data);
+    setFormValues((prev) => ({
+      ...prev,
+      [field.name]: finalValue,
+    }));
   };
 
   const renderField = (field: Field) => {
-    const baseClassName =
-      "w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500";
-
     switch (field.type) {
       case "select":
         return (
           <select
             name={field.name}
-            defaultValue={initialData[field.name] || field.value}
+            value={formValues[field.name]}
+            onChange={(e) => handleInputChange(field, e.target.value)}
             required={field.required}
-            className={baseClassName}
+            className={baseInputClasses}
           >
             {field.options?.map((option) => (
               <option key={option.value} value={option.value}>
@@ -76,10 +125,11 @@ export default function Form({
         return (
           <textarea
             name={field.name}
-            defaultValue={initialData[field.name] || field.value}
+            value={formValues[field.name]}
+            onChange={(e) => handleInputChange(field, e.target.value)}
             required={field.required}
             placeholder={field.placeholder}
-            className={`${baseClassName} min-h-[100px]`}
+            className={`${baseInputClasses} min-h-[100px] resize-y`}
           />
         );
 
@@ -88,10 +138,14 @@ export default function Form({
           <input
             type={field.type}
             name={field.name}
-            defaultValue={initialData[field.name] || field.value}
+            value={formValues[field.name]}
+            onChange={(e) => handleInputChange(field, e.target.value)}
             required={field.required}
             placeholder={field.placeholder}
-            className={baseClassName}
+            step={field.step}
+            pattern={field.pattern}
+            inputMode={field.inputMode}
+            className={baseInputClasses}
           />
         );
     }
@@ -101,8 +155,9 @@ export default function Form({
     <form onSubmit={handleSubmit} className="space-y-4">
       {fields.map((field) => (
         <div key={field.name}>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             {field.label}
+            {field.required && <span className="text-red-500 ml-1">*</span>}
           </label>
           {renderField(field)}
         </div>
@@ -115,14 +170,24 @@ export default function Form({
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-300"
+            className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 
+                     bg-gray-100 dark:bg-gray-800 
+                     hover:bg-gray-200 dark:hover:bg-gray-700
+                     rounded-lg 
+                     border border-gray-300 dark:border-gray-600
+                     focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500
+                     transition-colors duration-200"
           >
             {cancelText}
           </button>
         )}
         <button
           type="submit"
-          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300"
+          className="px-4 py-2 text-sm font-medium text-white
+                   bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600
+                   rounded-lg
+                   focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
+                   transition-colors duration-200"
         >
           {submitText}
         </button>
