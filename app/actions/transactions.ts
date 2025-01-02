@@ -1,27 +1,26 @@
 "use server";
 
-import {
-  deleteTransactionById,
-  updateTransactionById,
-} from "@/services/transactions";
+import { Transaction } from "@/app/types/transaction";
+import { transactionService } from "@/services/domain/transactions";
 import { revalidatePath } from "next/cache";
 
-export async function deleteTransaction(id: string) {
-  try {
-    await deleteTransactionById(id);
-    revalidatePath("/transactions");
-  } catch (error) {
-    console.error(error);
-    throw new Error("Failed to delete transaction");
-  }
+export async function getTransactions() {
+  return await transactionService.getTransactions();
 }
 
-export async function updateTransaction(id: string, data: any) {
-  try {
-    await updateTransactionById(id, data);
-    revalidatePath("/transactions", "page");
-  } catch (error) {
-    console.error(error);
-    throw new Error("Failed to edit transaction");
-  }
+export async function getTransactionFormOptions(userId?: string) {
+  return await transactionService.getTransactionFormOptions(userId);
+}
+
+export async function deleteTransaction(id: string) {
+  await transactionService.deleteTransaction(id);
+  revalidatePath("/transactions");
+}
+
+export async function updateTransaction(
+  id: string,
+  data: Partial<Transaction>
+) {
+  await transactionService.updateTransaction(id, data);
+  revalidatePath("/transactions");
 }

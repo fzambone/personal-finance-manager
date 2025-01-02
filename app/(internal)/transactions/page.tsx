@@ -3,14 +3,16 @@
 import {
   getTransactions,
   getTransactionFormOptions,
-} from "@/services/transactions";
+} from "@/app/actions/transactions";
 import GenericList from "@/components/Generic/List";
 import Badge from "@/components/Generic/Badge";
 import { formatCurrency } from "@/utils/formatCurrency";
 import TransactionActions from "@/components/Transactions/TransactionActions";
 import { Transaction } from "@/app/types/transaction";
 import { Columns } from "@/components/Generic/List";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { TransactionError } from "@/services/domain/transactions";
+import { toast } from "react-hot-toast";
 
 type StatusType =
   | "pending"
@@ -25,48 +27,69 @@ type FormOptions = {
   paymentMethods: { label: string; value: string }[];
 };
 
-function TransactionsList() {
+function useTransactionsList() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [formOptions, setFormOptions] = useState<FormOptions | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setIsLoading(true);
       const [transactionsData, options] = await Promise.all([
         getTransactions(),
-        // Get form options without user dependency
         getTransactionFormOptions(),
       ]);
       setTransactions(transactionsData);
       setFormOptions(options);
+    } catch (error) {
+      if (error instanceof TransactionError) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to load transactions");
+      }
+      console.error("Failed to load transactions:", error);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   // Function to optimistically update a transaction
-  const handleTransactionUpdate = (
-    id: string,
-    updatedData: Partial<Transaction>
-  ) => {
-    setTransactions((current) =>
-      current.map((transaction) =>
-        transaction.id === id ? { ...transaction, ...updatedData } : transaction
-      )
-    );
-  };
+  const handleTransactionUpdate = useCallback(
+    (id: string, updatedData: Partial<Transaction>) => {
+      setTransactions((current) =>
+        current.map((transaction) =>
+          transaction.id === id
+            ? { ...transaction, ...updatedData }
+            : transaction
+        )
+      );
+    },
+    []
+  );
 
   // Function to optimistically delete a transaction
-  const handleTransactionDelete = (id: string) => {
+  const handleTransactionDelete = useCallback((id: string) => {
     setTransactions((current) =>
       current.filter((transaction) => transaction.id !== id)
     );
-  };
+  }, []);
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
+
+  return {
+    transactions,
+    formOptions,
+    isLoading,
+    onUpdate: handleTransactionUpdate,
+    onDelete: handleTransactionDelete,
+  };
+}
+
+function TransactionsList() {
+  const { transactions, formOptions, isLoading, onUpdate, onDelete } =
+    useTransactionsList();
 
   const transactionTableColumns: Columns<Transaction>[] = [
     { key: "date", label: "Date" },
@@ -110,8 +133,8 @@ function TransactionsList() {
           id={row.id}
           data={row}
           formOptions={formOptions}
-          onOptimisticUpdate={handleTransactionUpdate}
-          onOptimisticDelete={handleTransactionDelete}
+          onOptimisticUpdate={onUpdate}
+          onOptimisticDelete={onDelete}
         />
       ),
     },
@@ -119,42 +142,10 @@ function TransactionsList() {
 
   return (
     <GenericList
-      columns={transactionTableColumns.map((column) =>
-        column.key === "actions"
-          ? {
-              ...column,
-              renderCell: (row: Transaction) => (
-                <TransactionActions
-                  id={row.id}
-                  data={row}
-                  formOptions={formOptions}
-                  onOptimisticUpdate={handleTransactionUpdate}
-                  onOptimisticDelete={handleTransactionDelete}
-                />
-              ),
-            }
-          : column
-      )}
+      columns={transactionTableColumns}
       data={transactions}
       isLoading={isLoading}
     />
-  );
-}
-
-function TransactionsLoading() {
-  return (
-    <div className="animate-pulse">
-      <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-32 mb-4"></div>
-      <div className="space-y-3">
-        <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded"></div>
-        {[...Array(5)].map((_, i) => (
-          <div
-            key={i}
-            className="h-16 bg-gray-100 dark:bg-gray-800 rounded"
-          ></div>
-        ))}
-      </div>
-    </div>
   );
 }
 

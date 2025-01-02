@@ -1,18 +1,25 @@
 "use client";
 
 import { deleteTransaction } from "@/app/actions/transactions";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import ConfirmationDialog from "../Generic/ConfirmationDialog";
 import Modal from "../Generic/Modal";
 import TransactionForm from "./TransactionForm";
 import { Transaction } from "@/app/types/transaction";
 import GenericActionMenu from "@/components/Generic/ActionMenu";
 import { toast } from "react-hot-toast";
+import { TransactionError } from "@/services/domain/transactions";
 
 type FormOptions = {
   types: { label: string; value: string }[];
   categories: { label: string; value: string }[];
   paymentMethods: { label: string; value: string }[];
+};
+
+type Action = {
+  label: string;
+  action: () => Promise<void>;
+  variant?: "danger" | "default";
 };
 
 type TransactionActionsProps = {
@@ -32,9 +39,11 @@ export default function TransactionActions({
 }: TransactionActionsProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const handleDelete = async () => {
+  const handleDelete = useCallback(async () => {
     try {
+      setIsDeleting(true);
       // Optimistically remove from UI
       onOptimisticDelete(id);
       // Close the dialog
@@ -44,27 +53,47 @@ export default function TransactionActions({
       toast.success("Transaction deleted successfully");
     } catch (error) {
       console.error("Failed to delete transaction:", error);
-      // Show error and reload data if delete fails
-      toast.error("Failed to delete transaction. Please try again.");
-      window.location.reload();
+      if (error instanceof TransactionError) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to delete transaction. Please try again.");
+      }
+      // Reload the page only if it's a critical error
+      if (!(error instanceof TransactionError)) {
+        window.location.reload();
+      }
+    } finally {
+      setIsDeleting(false);
     }
-  };
+  }, [id, onOptimisticDelete]);
 
-  return (
-    <>
-      <GenericActionMenu
-        actions={[
-          {
-            label: "Edit",
-            action: async () => setShowEditModal(true),
-          },
+  const handleEdit = useCallback(async () => {
+    setShowEditModal(true);
+  }, []);
+
+  const handleCloseEdit = useCallback(async () => {
+    setShowEditModal(false);
+  }, []);
+
+  const actions: Action[] = [
+    {
+      label: "Edit",
+      action: handleEdit,
+    },
+    ...(isDeleting
+      ? []
+      : [
           {
             label: "Delete",
             action: async () => setShowDeleteDialog(true),
-            variant: "danger",
+            variant: "danger" as const,
           },
-        ]}
-      />
+        ]),
+  ];
+
+  return (
+    <>
+      <GenericActionMenu actions={actions} />
 
       <ConfirmationDialog
         isOpen={showDeleteDialog}
@@ -79,13 +108,13 @@ export default function TransactionActions({
 
       <Modal
         isOpen={showEditModal}
-        onClose={() => setShowEditModal(false)}
+        onClose={handleCloseEdit}
         title="Edit Transaction"
       >
         <TransactionForm
           transaction={data}
           formOptions={formOptions}
-          onClose={() => setShowEditModal(false)}
+          onClose={handleCloseEdit}
           onOptimisticUpdate={onOptimisticUpdate}
         />
       </Modal>

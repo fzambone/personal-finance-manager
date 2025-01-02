@@ -1,7 +1,6 @@
 "use client";
 
 import { Transaction } from "@/app/types/transaction";
-import { getTransactionFormOptions } from "@/services/transactions";
 import { updateTransaction } from "@/app/actions/transactions";
 import { formatCurrency } from "@/utils/formatCurrency";
 import Form, { Field } from "../Generic/Form";
