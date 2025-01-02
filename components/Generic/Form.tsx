@@ -1,228 +1,119 @@
 "use client";
 
-import { ReactNode, useState } from "react";
-import { formatCurrency } from "@/utils/formatCurrency";
+import { useEffect, useState } from "react";
 
 export type Field = {
   name: string;
   label: string;
-  type: "text" | "number" | "date" | "select" | "textarea";
-  value: any;
-  options?: { label: string; value: any }[];
+  type: "text" | "number" | "date" | "select";
+  value: string | number;
   required?: boolean;
   placeholder?: string;
-  step?: string;
-  pattern?: string;
-  inputMode?:
-    | "none"
-    | "text"
-    | "decimal"
-    | "numeric"
-    | "tel"
-    | "search"
-    | "email"
-    | "url";
+  options?: { label: string; value: string }[];
+  inputMode?: "numeric" | "text";
 };
 
-type FormProps = {
+type FormProps<T> = {
   fields: Field[];
-  onSubmit: (data: Record<string, any>) => Promise<void>;
-  onCancel?: () => void;
-  submitText?: string;
-  cancelText?: string;
+  onSubmit: (data: T) => Promise<void>;
+  onCancel: () => void;
   initialData?: Record<string, any>;
-  children?: ReactNode;
+  submitText?: string;
+  disabled?: boolean;
 };
 
-const baseInputClasses = `
-  w-full rounded-lg
-  border border-gray-300 dark:border-gray-600
-  bg-white dark:bg-gray-700
-  px-3 py-2 text-sm
-  text-gray-900 dark:text-gray-100
-  placeholder-gray-400 dark:placeholder-gray-500
-  focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
-  focus:border-transparent
-  disabled:bg-gray-50 dark:disabled:bg-gray-800
-  disabled:text-gray-500 dark:disabled:text-gray-400
-  disabled:cursor-not-allowed
-  transition-colors duration-200
-`;
-
-export default function Form({
+export default function Form<T>({
   fields,
   onSubmit,
   onCancel,
-  submitText = "Save",
-  cancelText = "Cancel",
-  initialData = {},
-  children,
-}: FormProps) {
-  const [formValues, setFormValues] = useState<Record<string, any>>(() => {
-    return fields.reduce((acc, field) => {
-      let value = initialData[field.name] || field.value;
+  initialData,
+  submitText = "Submit",
+  disabled = false,
+}: FormProps<T>) {
+  const [formData, setFormData] = useState<Record<string, any>>(
+    initialData || {}
+  );
 
-      // Format initial amount value
-      if (field.name === "amount" && typeof value === "number") {
-        value = formatCurrency(value);
-      }
+  useEffect(() => {
+    if (initialData) {
+      setFormData(initialData);
+    }
+  }, [initialData]);
 
-      acc[field.name] = value;
-      return acc;
-    }, {} as Record<string, any>);
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
-    try {
-      await onSubmit(formValues);
-    } finally {
-      setIsSubmitting(false);
-    }
+    await onSubmit(formData as T);
   };
 
-  const handleInputChange = (field: Field, value: string) => {
-    let finalValue = value;
-
-    // Handle currency formatting for amount field
-    if (field.name === "amount") {
-      // Remove all non-numeric characters
-      const numericValue = value.replace(/\D/g, "");
-
-      if (numericValue) {
-        // Convert the numeric string to cents
-        const cents = parseInt(numericValue, 10);
-        if (!isNaN(cents)) {
-          finalValue = formatCurrency(cents);
-        }
-      } else {
-        finalValue = "";
-      }
-    }
-
-    setFormValues((prev) => ({
-      ...prev,
-      [field.name]: finalValue,
-    }));
-  };
-
-  const renderField = (field: Field) => {
-    switch (field.type) {
-      case "select":
-        return (
-          <select
-            name={field.name}
-            value={formValues[field.name]}
-            onChange={(e) => handleInputChange(field, e.target.value)}
-            required={field.required}
-            className={baseInputClasses}
-          >
-            {field.options?.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        );
-
-      case "textarea":
-        return (
-          <textarea
-            name={field.name}
-            value={formValues[field.name]}
-            onChange={(e) => handleInputChange(field, e.target.value)}
-            required={field.required}
-            placeholder={field.placeholder}
-            className={`${baseInputClasses} min-h-[100px] resize-y`}
-          />
-        );
-
-      default:
-        return (
-          <input
-            type={field.type}
-            name={field.name}
-            value={formValues[field.name]}
-            onChange={(e) => handleInputChange(field, e.target.value)}
-            required={field.required}
-            placeholder={field.placeholder}
-            step={field.step}
-            pattern={field.pattern}
-            inputMode={field.inputMode}
-            className={baseInputClasses}
-          />
-        );
-    }
+  const handleChange = (name: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {fields.map((field) => (
         <div key={field.name}>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label
+            htmlFor={field.name}
+            className="block text-sm font-medium text-gray-700 dark:text-gray-200"
+          >
             {field.label}
-            {field.required && <span className="text-red-500 ml-1">*</span>}
+            {field.required && (
+              <span className="text-red-500 ml-1" aria-hidden="true">
+                *
+              </span>
+            )}
           </label>
-          {renderField(field)}
+          <div className="mt-1">
+            {field.type === "select" ? (
+              <select
+                id={field.name}
+                name={field.name}
+                value={formData[field.name] || ""}
+                onChange={(e) => handleChange(field.name, e.target.value)}
+                required={field.required}
+                disabled={disabled}
+                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md dark:bg-gray-700 dark:text-white"
+              >
+                <option value="">Select an option</option>
+                {field.options?.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                type={field.type}
+                name={field.name}
+                id={field.name}
+                value={formData[field.name] || ""}
+                onChange={(e) => handleChange(field.name, e.target.value)}
+                required={field.required}
+                placeholder={field.placeholder}
+                inputMode={field.inputMode}
+                disabled={disabled}
+                className="mt-1 block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:bg-gray-700 dark:text-white"
+              />
+            )}
+          </div>
         </div>
       ))}
-
-      {children}
-
-      <div className="flex justify-end gap-3 mt-6">
-        {onCancel && (
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={isSubmitting}
-            className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 
-                     bg-gray-100 dark:bg-gray-800 
-                     hover:bg-gray-200 dark:hover:bg-gray-700
-                     rounded-lg 
-                     border border-gray-300 dark:border-gray-600
-                     focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500
-                     transition-colors duration-200
-                     disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {cancelText}
-          </button>
-        )}
+      <div className="flex justify-end space-x-3 pt-5">
+        <button
+          type="button"
+          onClick={onCancel}
+          disabled={disabled}
+          className="bg-white dark:bg-gray-800 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        >
+          Cancel
+        </button>
         <button
           type="submit"
-          disabled={isSubmitting}
-          className="px-4 py-2 text-sm font-medium text-white
-                   bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600
-                   rounded-lg
-                   focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
-                   transition-colors duration-200
-                   disabled:opacity-50 disabled:cursor-not-allowed
-                   flex items-center gap-2"
+          disabled={disabled}
+          className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isSubmitting ? (
-            <>
-              <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                  fill="none"
-                />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                />
-              </svg>
-              Saving...
-            </>
-          ) : (
-            submitText
-          )}
+          {submitText}
         </button>
       </div>
     </form>
