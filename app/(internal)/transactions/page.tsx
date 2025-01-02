@@ -7,8 +7,16 @@ import { formatCurrency } from "@/utils/formatCurrency";
 import TransactionActions from "@/components/Transactions/TransactionActions";
 import { Transaction } from "@/app/types/transaction";
 import { Columns } from "@/components/Generic/List";
+import { Suspense } from "react";
 
-export default async function TransactionsPage() {
+type StatusType =
+  | "pending"
+  | "approved"
+  | "rejected"
+  | "processing"
+  | "cancelled";
+
+async function TransactionsList() {
   const transactions = await getTransactions();
 
   const transactionTableColumns: Columns<Transaction>[] = [
@@ -30,7 +38,10 @@ export default async function TransactionsPage() {
       key: "type",
       label: "Type",
       renderCell: (row: Transaction) => (
-        <Badge variant="transaction" type={row.type} />
+        <Badge
+          variant="transaction"
+          type={row.type === "EXPENSE" ? "expense" : "income"}
+        />
       ),
     },
     { key: "category", label: "Category" },
@@ -39,7 +50,7 @@ export default async function TransactionsPage() {
       key: "status",
       label: "Status",
       renderCell: (row: Transaction) => (
-        <Badge variant="status" type={row.status} />
+        <Badge variant="status" type={row.status.toLowerCase() as StatusType} />
       ),
     },
     {
@@ -51,6 +62,27 @@ export default async function TransactionsPage() {
     },
   ];
 
+  return <GenericList columns={transactionTableColumns} data={transactions} />;
+}
+
+function TransactionsLoading() {
+  return (
+    <div className="animate-pulse">
+      <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-32 mb-4"></div>
+      <div className="space-y-3">
+        <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded"></div>
+        {[...Array(5)].map((_, i) => (
+          <div
+            key={i}
+            className="h-16 bg-gray-100 dark:bg-gray-800 rounded"
+          ></div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default async function TransactionsPage() {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -58,7 +90,9 @@ export default async function TransactionsPage() {
           Transactions
         </h1>
       </div>
-      <GenericList columns={transactionTableColumns} data={transactions} />
+      <Suspense fallback={<TransactionsLoading />}>
+        <TransactionsList />
+      </Suspense>
     </div>
   );
 }
