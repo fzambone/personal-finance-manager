@@ -8,10 +8,9 @@ import {
   deleteTransaction as deleteTransactionData,
   createTransaction as createTransactionData,
 } from "@/services/domain/transactions";
-import type { FormOptions } from "@/services/domain/transactions";
+import type { FormOptions } from "@/components/Transactions/types";
 import { revalidateTag } from "next/cache";
 import { withLogging } from "@/utils/server-action-logger";
-import { TransactionError } from "@/app/core/errors/types";
 
 export const getTransactions = withLogging(
   "getTransactions",

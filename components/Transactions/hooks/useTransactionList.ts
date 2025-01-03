@@ -8,7 +8,7 @@ import {
   deleteTransaction,
 } from "@/app/actions/transactions";
 import { useState, useEffect, useCallback } from "react";
-import type { FormOptions } from "@/services/domain/transactions";
+import type { FormOptions } from "../types";
 import { FilterState } from "@/components/Generic/FilterBar";
 import useSWR from "swr";
 export type { FormOptions };
