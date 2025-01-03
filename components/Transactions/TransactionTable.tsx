@@ -18,7 +18,7 @@ type TransactionTableProps = {
   data: Transaction[];
   formOptions: FormOptions | null;
   isLoading: boolean;
-  onUpdate: (id: string, updatedData: Partial<Transaction>) => void;
+  onUpdate: (id: string, updatedData: Partial<Transaction> | undefined) => void;
   onDelete: (id: string) => void;
 };
 

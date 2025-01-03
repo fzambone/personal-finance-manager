@@ -26,7 +26,10 @@ type TransactionActionsProps = {
   id: string;
   data: Transaction;
   formOptions: FormOptions | null;
-  onOptimisticUpdate: (id: string, updatedData: Partial<Transaction>) => void;
+  onOptimisticUpdate: (
+    id: string,
+    updatedData: Partial<Transaction> | undefined
+  ) => void;
   onOptimisticDelete: (id: string) => void;
 };
 
