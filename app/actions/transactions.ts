@@ -9,44 +9,51 @@ import {
 } from "@/services/domain/transactions";
 import type { FormOptions } from "@/services/domain/transactions";
 import { revalidateTag } from "next/cache";
+import { withLogging } from "@/utils/server-action-logger";
 
-export async function getTransactions(
-  page?: number,
-  itemsPerPage?: number,
-  filters?: {
-    search?: string;
-    dateRange?: { start: string; end: string };
-    amountRange?: { min: number; max: number };
-    types?: string[];
-    categories?: string[];
-    paymentMethods?: string[];
-    statuses?: string[];
+export const getTransactions = withLogging(
+  "getTransactions",
+  async (
+    page?: number,
+    itemsPerPage?: number,
+    filters?: {
+      search?: string;
+      dateRange?: { start: string; end: string };
+      amountRange?: { min: number; max: number };
+      types?: string[];
+      categories?: string[];
+      paymentMethods?: string[];
+      statuses?: string[];
+    }
+  ): Promise<{
+    data: Transaction[];
+    totalPages: number;
+    totalItems: number;
+  }> => {
+    const result = await getTransactionsList(page, itemsPerPage, filters);
+    return result;
   }
-): Promise<{
-  data: Transaction[];
-  totalPages: number;
-  totalItems: number;
-}> {
-  const result = await getTransactionsList(page, itemsPerPage, filters);
-  return result;
-}
+);
 
-export async function getTransactionFormOptions(): Promise<FormOptions> {
-  return getFormOptions();
-}
-
-export async function updateTransaction(
-  id: string,
-  data: Partial<Transaction>
-): Promise<void> {
-  try {
-    await updateTransactionData(id, data);
-    revalidateTag("transactions");
-    return Promise.resolve();
-  } catch (error) {
-    return Promise.reject(error);
+export const getTransactionFormOptions = withLogging(
+  "getTransactionFormOptions",
+  async (): Promise<FormOptions> => {
+    return getFormOptions();
   }
-}
+);
+
+export const updateTransaction = withLogging(
+  "updateTransaction",
+  async (id: string, data: Partial<Transaction>): Promise<void> => {
+    try {
+      await updateTransactionData(id, data);
+      revalidateTag("transactions");
+      return Promise.resolve();
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  }
+);
 
 export async function deleteTransaction(id: string): Promise<void> {
   try {
