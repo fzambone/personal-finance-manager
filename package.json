@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "DISABLE_LOGGING=true next dev --turbopack",
+    "dev:debug": "LOG_ACTIONS=true next dev --turbopack",
+    "dev:verbose": "LOG_LEVEL=debug LOG_ACTIONS=true next dev --turbopack",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"

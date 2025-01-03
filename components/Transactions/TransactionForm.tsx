@@ -1,7 +1,7 @@
 "use client";
 
 import { Transaction } from "@/app/types/transaction";
-import Form, { Field } from "../Generic/Form";
+import Form, { FormField } from "../Generic/Form";
 import FormSkeleton from "../Skeletons/FormSkeleton";
 import { useEffect, useState, useCallback } from "react";
 import TransactionFormFields from "./TransactionFormFields";
@@ -15,7 +15,10 @@ type TransactionFormProps = {
   transaction: Transaction;
   formOptions: FormOptions | null;
   onClose: () => void;
-  onOptimisticUpdate: (id: string, updatedData: Partial<Transaction>) => void;
+  onOptimisticUpdate: (
+    id: string,
+    updatedData: Partial<Transaction> | undefined
+  ) => void;
 };
 
 export default function TransactionForm({
@@ -25,7 +28,7 @@ export default function TransactionForm({
   onOptimisticUpdate,
 }: TransactionFormProps) {
   const [isLoading, setIsLoading] = useState(true);
-  const [fields, setFields] = useState<Field[]>([]);
+  const [fields, setFields] = useState<FormField[]>([]);
   const { isSubmitting, handleSubmit } = useTransactionForm(
     transaction,
     formOptions,
@@ -40,7 +43,7 @@ export default function TransactionForm({
     }
   }, [formOptions]);
 
-  const handleFieldsChange = useCallback((newFields: Field[]) => {
+  const handleFieldsChange = useCallback((newFields: FormField[]) => {
     setFields(newFields);
   }, []);
 
@@ -59,7 +62,10 @@ export default function TransactionForm({
         fields={fields}
         onSubmit={handleSubmit}
         onCancel={onClose}
-        initialData={transaction}
+        initialData={{
+          ...transaction,
+          amount: transaction.amount.toString(),
+        }}
         submitText={isSubmitting ? "Saving..." : "Save Changes"}
         disabled={isSubmitting}
       />

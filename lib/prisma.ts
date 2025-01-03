@@ -6,8 +6,25 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 const prismaClient = new PrismaClient({
-  log: process.env.NODE_ENV === "development" ? ["error", "warn"] : [],
+  log:
+    process.env.NODE_ENV === "development"
+      ? [
+          { level: "warn", emit: "event" },
+          { level: "error", emit: "event" },
+        ]
+      : ["error"],
 });
+
+// Only log slow queries and errors in development
+if (process.env.NODE_ENV === "development") {
+  prismaClient.$on("warn", (e) => {
+    console.warn(e);
+  });
+
+  prismaClient.$on("error", (e) => {
+    console.error(e);
+  });
+}
 
 prismaClient.$use(async (params, next) => {
   const before = Date.now();
