@@ -8,7 +8,7 @@ import TransactionForm from "./TransactionForm";
 import { Transaction } from "@/app/types/transaction";
 import GenericActionMenu from "@/components/Generic/ActionMenu";
 import { toast } from "react-hot-toast";
-import { handleError } from "@/utils/error-handling";
+import { handleError } from "@/app/core/errors/handler";
 
 type FormOptions = {
   types: { label: string; value: string }[];

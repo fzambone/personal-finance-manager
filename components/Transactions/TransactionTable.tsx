@@ -4,7 +4,7 @@ import Badge from "@/components/Generic/Badge";
 import GenericList from "@/components/Generic/List";
 import { Columns } from "@/components/Generic/List";
 import TransactionActions from "./TransactionActions";
-import { FormOptions } from "./hooks/useTransactionList";
+import { FormOptions } from "./types";
 import TableSkeleton from "@/components/Skeletons/TableSkeleton";
 
 type StatusType =

@@ -1,5 +1,5 @@
 import { toast } from "react-hot-toast";
-import { AppError, TransactionError, ValidationError } from "./types";
+import { AppError } from "./types";
 
 export type ErrorHandlerOptions = {
   defaultMessage?: string;

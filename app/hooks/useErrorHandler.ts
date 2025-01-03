@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
-import { handleError } from "../errors/handler";
-import type { ErrorHandlerOptions } from "../errors/handler";
+import { handleError } from "@/app/core/errors/handler";
+import type { ErrorHandlerOptions } from "@/app/core/errors/handler";
 
 export function useErrorHandler() {
   const [error, setError] = useState<string | null>(null);
