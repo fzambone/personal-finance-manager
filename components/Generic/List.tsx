@@ -23,7 +23,7 @@ export default function GenericList<T>({
             {columns.map((column) => (
               <th
                 key={column.key as string}
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                className="table-header px-6 py-3 text-left"
               >
                 {column.label}
               </th>
@@ -40,7 +40,7 @@ export default function GenericList<T>({
               {columns.map((column) => (
                 <td
                   key={`${i}-${column.key as string}`}
-                  className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300"
+                  className="table-cell px-6 py-4 whitespace-nowrap"
                 >
                   {column.renderCell
                     ? column.renderCell(row)

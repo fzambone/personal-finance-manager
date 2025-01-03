@@ -34,9 +34,40 @@ export default function TransactionTable({
   }
 
   const columns: Columns<Transaction>[] = [
-    { key: "date", label: "Date" },
+    {
+      key: "date",
+      label: "Date",
+      renderCell: (row: Transaction) => {
+        // Split the date string and create a date object in local timezone
+        const [year, month, day] = row.date.split("-").map(Number);
+        const date = new Date(year, month - 1, day);
+
+        return (
+          <span className="table-cell">
+            {date.toLocaleDateString("en-GB", {
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
+            })}
+          </span>
+        );
+      },
+    },
     { key: "user", label: "User" },
-    { key: "name", label: "Description" },
+    {
+      key: "name",
+      label: "Description",
+      renderCell: (row: Transaction) => (
+        <div className="flex items-center gap-2">
+          <Badge
+            variant="transaction"
+            type={row.type === "EXPENSE" ? "expense" : "income"}
+            className="w-2 h-2 rounded-full p-0"
+          />
+          <span>{row.name}</span>
+        </div>
+      ),
+    },
     {
       key: "amount",
       label: "Amount",
@@ -48,23 +79,17 @@ export default function TransactionTable({
         </span>
       ),
     },
-    {
-      key: "type",
-      label: "Type",
-      renderCell: (row: Transaction) => (
-        <Badge
-          variant="transaction"
-          type={row.type === "EXPENSE" ? "expense" : "income"}
-        />
-      ),
-    },
     { key: "category", label: "Category" },
     { key: "paymentMethod", label: "Payment Method" },
     {
       key: "status",
       label: "Status",
       renderCell: (row: Transaction) => (
-        <Badge variant="status" type={row.status.toLowerCase() as StatusType} />
+        <Badge
+          variant="status"
+          type={row.status.toLowerCase() as StatusType}
+          className="px-2.5 py-0.5 rounded-full text-xs font-medium"
+        />
       ),
     },
     {

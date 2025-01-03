@@ -7,6 +7,8 @@ import {
   CurrencyDollarIcon,
   HomeIcon,
   UserGroupIcon,
+  ChartBarIcon,
+  Cog6ToothIcon,
 } from "@heroicons/react/24/outline";
 import MainContent from "@/components/Layout/MainContent";
 
@@ -15,27 +17,38 @@ export default function InternalLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const navigation = [
+    { icon: HomeIcon, label: "Dashboard", href: "/dashboard" },
+    {
+      icon: CurrencyDollarIcon,
+      label: "Transactions",
+      href: "/transactions",
+      count: 5,
+    },
+    { icon: ChartBarIcon, label: "Analytics", href: "/analytics" },
+    { icon: UserGroupIcon, label: "Users", href: "/users" },
+    { icon: Cog6ToothIcon, label: "Settings", href: "/settings" },
+  ];
+
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex">
+      <div className="min-h-screen flex bg-gray-50 dark:bg-gray-900">
         <SidebarContainer>
           <SidebarHero />
-          <div className="flex flex-col space-y-1">
-            <NavbarItem
-              icon={<HomeIcon className="w-6 h-6" />}
-              label="Dashboard"
-            />
-            <NavbarItem
-              icon={<CurrencyDollarIcon className="w-6 h-6" />}
-              label="Transactions"
-              count={5}
-            />
-            <NavbarItem
-              icon={<UserGroupIcon className="w-6 h-6" />}
-              label="Users"
-            />
-          </div>
-          <SectionHeading title="Your Teams" hasDivider={true} />
+          <nav className="mt-6 flex-1 space-y-1 px-2">
+            {navigation.map((item) => (
+              <NavbarItem
+                key={item.href}
+                icon={<item.icon className="w-6 h-6" />}
+                label={item.label}
+                href={item.href}
+                count={item.count}
+              />
+            ))}
+          </nav>
+          {/* <div className="flex-shrink-0 p-4 border-t border-gray-200 dark:border-gray-800">
+            <SectionHeading title="Your Teams" hasDivider={false} />
+          </div> */}
         </SidebarContainer>
         <MainContent>{children}</MainContent>
       </div>

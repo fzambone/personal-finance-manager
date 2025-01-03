@@ -29,9 +29,9 @@ export default function TransactionsPage() {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+        {/* <h1 className="text-xl font-bold text-gray-900 dark:text-white">
           Transactions
-        </h1>
+        </h1> */}
       </div>
 
       {formOptions && (

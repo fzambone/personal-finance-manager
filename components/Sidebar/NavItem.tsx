@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useSidebar } from "./SidebarContext";
 import { ChevronDownIcon } from "@heroicons/react/24/outline";
 import Tooltip from "../Generic/Tooltip";
-import { useState } from "react";
+import { motion } from "framer-motion";
 
 type NavItemProps = {
   icon: React.ReactNode;
@@ -29,88 +29,59 @@ export default function NavItem({
   const pathname = usePathname();
   const isActive =
     pathname === href || subItems?.some((item) => pathname === item.href);
-  const [isOpen, setIsOpen] = useState(false);
 
   const content = (
-    <div className="w-full">
-      <div
+    <Link
+      href={href}
+      className={`
+        group flex items-center gap-x-3 p-2 rounded-lg
+        transition-all duration-200 ease-in-out
+        ${
+          isActive
+            ? "nav-item-active bg-primary-50 text-primary-600 dark:bg-primary-950 dark:text-primary-400"
+            : "nav-item text-gray-700 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800/50 dark:hover:text-white"
+        }
+      `}
+    >
+      <motion.div
+        initial={false}
+        animate={{
+          scale: isActive ? 1.1 : 1,
+          rotate: isActive ? 360 : 0,
+        }}
+        transition={{ duration: 0.2 }}
         className={`
-          flex items-center px-3 py-2 rounded-lg
-          transition-all duration-200 group cursor-pointer
+          flex-shrink-0 w-6 h-6
           ${
             isActive
-              ? "bg-sidebar-active dark:bg-dark-sidebar-active text-sidebar-text-primary dark:text-dark-sidebar-text-primary"
-              : "text-sidebar-text-inactive dark:text-dark-sidebar-text-inactive hover:bg-sidebar-hover dark:hover:bg-dark-sidebar-hover hover:text-sidebar-text-primary dark:hover:text-dark-sidebar-text-primary"
+              ? "text-primary-600 dark:text-primary-400"
+              : "text-gray-400 group-hover:text-gray-500 dark:group-hover:text-gray-300"
           }
         `}
-        onClick={() => subItems && setIsOpen(!isOpen)}
       >
-        <div className="flex items-center flex-1">
-          <div
-            className={`
-              ${
-                isActive
-                  ? "text-sidebar-text-primary dark:text-dark-sidebar-text-primary"
-                  : "text-sidebar-text-inactive dark:text-dark-sidebar-text-inactive"
-              }
-              group-hover:text-sidebar-text-primary dark:group-hover:text-dark-sidebar-text-primary
-              transition-colors duration-200
-            `}
-          >
-            {icon}
-          </div>
+        {icon}
+      </motion.div>
 
-          {!isCollapsed && (
-            <>
-              <span className="ml-3 text-sm font-medium truncate">{label}</span>
-              {subItems && (
-                <ChevronDownIcon
-                  className={`w-4 h-4 ml-auto transition-transform duration-200 
-                    ${isOpen ? "transform rotate-180" : ""}`}
-                />
-              )}
-            </>
-          )}
-        </div>
-
-        {!isCollapsed && count && (
-          <span
-            className={`
-              ml-auto text-xs px-2 py-0.5 rounded-full
-              animate-in fade-in-0 zoom-in-95
-              ${
-                isActive
-                  ? "bg-sidebar-text-primary dark:bg-dark-sidebar-text-primary text-sidebar-bg dark:text-dark-sidebar-bg"
-                  : "bg-sidebar-hover dark:bg-dark-sidebar-hover text-sidebar-text-secondary dark:text-dark-sidebar-text-secondary"
-              }
-            `}
-          >
-            {count}
-          </span>
-        )}
-      </div>
-
-      {!isCollapsed && isOpen && subItems && (
-        <div className="ml-4 mt-1 space-y-1 animate-in slide-in-from-left-5">
-          {subItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
+      {!isCollapsed && (
+        <>
+          <span className="flex-1 truncate">{label}</span>
+          {count !== undefined && (
+            <span
               className={`
-                block px-3 py-2 rounded-lg text-sm
+                inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
                 ${
-                  pathname === item.href
-                    ? "bg-sidebar-active dark:bg-dark-sidebar-active text-sidebar-text-primary dark:text-dark-sidebar-text-primary"
-                    : "text-sidebar-text-inactive dark:text-dark-sidebar-text-inactive hover:bg-sidebar-hover dark:hover:bg-dark-sidebar-hover hover:text-sidebar-text-primary dark:hover:text-dark-sidebar-text-primary"
+                  isActive
+                    ? "bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300"
+                    : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
                 }
               `}
             >
-              {item.label}
-            </Link>
-          ))}
-        </div>
+              {count}
+            </span>
+          )}
+        </>
       )}
-    </div>
+    </Link>
   );
 
   if (isCollapsed) {

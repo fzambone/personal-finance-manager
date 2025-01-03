@@ -1,12 +1,16 @@
 import { UserCircleIcon } from "@heroicons/react/24/outline";
 import { BellIcon } from "@heroicons/react/24/outline";
 
-export default function Header() {
+type HeaderProps = {
+  title?: string;
+};
+
+export default function Header({ title = "Dashboard" }: HeaderProps) {
   return (
-    <header className="h-16 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+    <header className="ml-6 h-16">
       <div className="h-full px-4 flex items-center justify-between">
-        <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
-          Dashboard
+        <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
+          {title}
         </h1>
         <div className="flex items-center space-x-4">
           {/* Add your header content here */}
