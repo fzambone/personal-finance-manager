@@ -1,157 +1,186 @@
-import { Transaction, TransactionType } from "@/app/types/transaction";
-import { prisma } from "@/lib/db";
+import { Transaction } from "@/app/types/transaction";
+import { prisma } from "../../lib/prisma";
+import { TransactionError } from "../../services/domain/errors";
+import { Prisma } from "@prisma/client";
 
-type TransactionResult = {
-  id: string;
-  user_id: string;
-  type_id: string;
-  category_id: string;
-  payment_method_id: string;
-  transaction_date: Date;
-  description: string | null;
-  amount: number;
-  users: { first_name: string };
-  transaction_types: { name: string };
-  categories: { name: string };
-  payment_methods: { name: string };
-  transaction_status: { name: string };
+export { TransactionError };
+
+export type FormOptions = {
+  types: { label: string; value: string }[];
+  categories: { label: string; value: string }[];
+  paymentMethods: { label: string; value: string }[];
 };
 
-type FormOption = {
-  id: string;
-  name: string;
+export type PaginatedTransactions = {
+  data: Transaction[];
+  totalPages: number;
+  totalItems: number;
 };
 
-interface PrismaError extends Error {
-  code?: string;
+interface FilterOptions {
+  search?: string;
+  dateRange?: { start: string; end: string };
+  amountRange?: { min: number; max: number };
+  types?: string[];
+  categories?: string[];
+  paymentMethods?: string[];
+  statuses?: string[];
 }
 
-function isPrismaError(error: unknown): error is PrismaError {
-  return error instanceof Error && "code" in error;
-}
-
-export class TransactionError extends Error {
-  constructor(message: string, public readonly cause?: unknown) {
-    super(message);
-    this.name = "TransactionError";
-  }
-}
-
-export interface TransactionService {
-  getTransactions(): Promise<Transaction[]>;
-  getTransactionFormOptions(userId?: string): Promise<{
-    types: Array<{ label: string; value: string }>;
-    categories: Array<{ label: string; value: string }>;
-    paymentMethods: Array<{ label: string; value: string }>;
-  }>;
-  deleteTransaction(id: string): Promise<void>;
-  updateTransaction(id: string, data: Partial<Transaction>): Promise<void>;
-}
-
-class TransactionServiceImpl implements TransactionService {
-  async getTransactions(): Promise<Transaction[]> {
+export class TransactionService {
+  async getTransactions(
+    page: number = 1,
+    itemsPerPage: number = 10,
+    filters?: FilterOptions
+  ): Promise<PaginatedTransactions> {
     try {
-      const transactions = await prisma.transactions.findMany({
-        select: {
-          id: true,
-          user_id: true,
-          type_id: true,
-          category_id: true,
-          payment_method_id: true,
-          transaction_date: true,
-          description: true,
-          amount: true,
-          users: {
-            select: { first_name: true },
+      const where: Prisma.transactionsWhereInput = {
+        deleted_at: null,
+        ...(filters?.search && {
+          OR: [
+            { description: { contains: filters.search, mode: "insensitive" } },
+            {
+              users: {
+                OR: [
+                  {
+                    first_name: {
+                      contains: filters.search,
+                      mode: "insensitive",
+                    },
+                  },
+                  {
+                    last_name: {
+                      contains: filters.search,
+                      mode: "insensitive",
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        }),
+        ...(filters?.dateRange && {
+          transaction_date: {
+            gte: filters.dateRange.start,
+            lte: filters.dateRange.end,
           },
-          transaction_types: {
-            select: { name: true },
+        }),
+        ...(filters?.amountRange && {
+          amount: {
+            gte: filters.amountRange.min,
+            lte: filters.amountRange.max,
           },
-          categories: {
-            select: { name: true },
-          },
-          payment_methods: {
-            select: { name: true },
-          },
-          transaction_status: {
-            select: { name: true },
-          },
-        },
-        orderBy: { transaction_date: "desc" },
-      });
+        }),
+        ...(filters?.types?.length && {
+          type_id: { in: filters.types },
+        }),
+        ...(filters?.categories?.length && {
+          category_id: { in: filters.categories },
+        }),
+        ...(filters?.paymentMethods?.length && {
+          payment_method_id: { in: filters.paymentMethods },
+        }),
+        ...(filters?.statuses?.length && {
+          status_id: { in: filters.statuses },
+        }),
+      };
 
-      return transactions.map((t: TransactionResult) => ({
-        id: t.id,
-        user_id: t.user_id,
-        type_id: t.type_id,
-        category_id: t.category_id,
-        payment_method_id: t.payment_method_id,
-        date: t.transaction_date,
-        user: t.users.first_name,
-        name: t.description || "",
-        amount: t.amount,
-        type: t.transaction_types.name as TransactionType,
-        category: t.categories.name,
-        paymentMethod: t.payment_methods.name,
-        status: t.transaction_status.name,
+      const [transactions, totalItems] = await Promise.all([
+        prisma.transactions.findMany({
+          where,
+          skip: (page - 1) * itemsPerPage,
+          take: itemsPerPage,
+          include: {
+            users: true,
+            categories: true,
+            payment_methods: true,
+            transaction_types: true,
+            transaction_status: true,
+          },
+          orderBy: {
+            transaction_date: "desc",
+          },
+        }),
+        prisma.transactions.count({ where }),
+      ]);
+
+      const formattedTransactions = transactions.map((transaction) => ({
+        id: transaction.id,
+        user_id: transaction.user_id,
+        type_id: transaction.type_id,
+        category_id: transaction.category_id,
+        payment_method_id: transaction.payment_method_id,
+        status_id: transaction.status_id,
+        date: transaction.transaction_date,
+        user: `${transaction.users.first_name} ${transaction.users.last_name}`,
+        name: transaction.description || "",
+        amount: transaction.amount,
+        type: transaction.transaction_types.name,
+        category: transaction.categories.name,
+        paymentMethod: transaction.payment_methods.name,
+        status: transaction.transaction_status.name.toLowerCase(),
       }));
+
+      return {
+        data: formattedTransactions,
+        totalPages: Math.ceil(totalItems / itemsPerPage),
+        totalItems,
+      };
     } catch (error) {
-      throw new TransactionError("Failed to fetch transactions", error);
+      console.error("Error fetching transactions:", error);
+      throw new TransactionError("Failed to fetch transactions");
     }
   }
 
-  async getTransactionFormOptions(userId?: string) {
+  async getTransactionFormOptions(userId?: string): Promise<FormOptions> {
     try {
       const [types, categories, paymentMethods] = await Promise.all([
         prisma.transaction_types.findMany({
           where: { deleted_at: null },
           select: { id: true, name: true },
-          orderBy: { name: "asc" },
         }),
         prisma.categories.findMany({
           where: { deleted_at: null },
           select: { id: true, name: true },
-          orderBy: { name: "asc" },
         }),
         prisma.payment_methods.findMany({
           where: {
-            ...(userId ? { user_id: userId } : {}),
             deleted_at: null,
+            ...(userId ? { user_id: userId } : {}),
           },
           select: { id: true, name: true },
-          orderBy: { name: "asc" },
         }),
       ]);
 
       return {
-        types: types.map((type: FormOption) => ({
-          label: type.name.charAt(0) + type.name.slice(1).toLowerCase(),
+        types: types.map((type) => ({
+          label: type.name,
           value: type.id,
         })),
-        categories: categories.map((category: FormOption) => ({
+        categories: categories.map((category) => ({
           label: category.name,
           value: category.id,
         })),
-        paymentMethods: paymentMethods.map((method: FormOption) => ({
+        paymentMethods: paymentMethods.map((method) => ({
           label: method.name,
           value: method.id,
         })),
       };
     } catch (error) {
-      throw new TransactionError("Failed to fetch form options", error);
+      console.error("Failed to fetch form options:", error);
+      throw new TransactionError("Failed to fetch form options");
     }
   }
 
   async deleteTransaction(id: string): Promise<void> {
     try {
-      await prisma.transactions.delete({
+      await prisma.transactions.update({
         where: { id },
+        data: { deleted_at: new Date() },
       });
     } catch (error) {
-      if (isPrismaError(error) && error.code === "P2025") {
-        throw new TransactionError("Transaction not found");
-      }
-      throw new TransactionError("Failed to delete transaction", error);
+      console.error("Failed to delete transaction:", error);
+      throw new TransactionError("Failed to delete transaction");
     }
   }
 
@@ -173,14 +202,10 @@ class TransactionServiceImpl implements TransactionService {
         },
       });
     } catch (error) {
-      if (isPrismaError(error) && error.code === "P2025") {
-        throw new TransactionError("Transaction not found");
-      }
-      throw new TransactionError("Failed to update transaction", error);
+      console.error("Failed to update transaction:", error);
+      throw new TransactionError("Failed to update transaction");
     }
   }
 }
 
-// Export a singleton instance
-export const transactionService: TransactionService =
-  new TransactionServiceImpl();
+export const transactionService = new TransactionService();

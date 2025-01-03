@@ -5,6 +5,7 @@ import GenericList from "@/components/Generic/List";
 import { Columns } from "@/components/Generic/List";
 import TransactionActions from "./TransactionActions";
 import { FormOptions } from "./hooks/useTransactionList";
+import TableSkeleton from "@/components/Skeletons/TableSkeleton";
 
 type StatusType =
   | "pending"
@@ -28,6 +29,10 @@ export default function TransactionTable({
   onUpdate,
   onDelete,
 }: TransactionTableProps) {
+  if (isLoading) {
+    return <TableSkeleton />;
+  }
+
   const columns: Columns<Transaction>[] = [
     { key: "date", label: "Date" },
     { key: "user", label: "User" },
@@ -77,5 +82,5 @@ export default function TransactionTable({
     },
   ];
 
-  return <GenericList columns={columns} data={data} isLoading={isLoading} />;
+  return <GenericList columns={columns} data={data} />;
 }
