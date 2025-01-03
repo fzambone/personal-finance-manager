@@ -17,20 +17,20 @@ type BadgeProps = {
 export default function Badge({ variant, type, className = "" }: BadgeProps) {
   const variantClasses = {
     transaction: {
-      expense: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
-      income:
-        "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
+      expense: "bg-rose-200/60 dark:bg-rose-300/50",
+      income: "bg-emerald-200/60 dark:bg-emerald-300/50",
     },
     status: {
       pending:
-        "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300",
+        "bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary/90",
       approved:
-        "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
-      rejected: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
+        "bg-emerald-100/80 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400",
+      rejected:
+        "bg-rose-100/80 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400",
       processing:
-        "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+        "bg-violet-100/80 text-violet-600 dark:bg-violet-500/20 dark:text-violet-400",
       cancelled:
-        "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300",
+        "bg-slate-100/80 text-slate-600 dark:bg-slate-500/20 dark:text-slate-400",
     },
   };
 

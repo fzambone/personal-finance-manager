@@ -18,12 +18,12 @@ export default function GenericList<T>({
   return (
     <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-800">
       <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
-        <thead className="bg-gray-50 dark:bg-gray-900/50">
+        <thead className="bg-gray-50/50 dark:bg-gray-900/50">
           <tr>
             {columns.map((column) => (
               <th
                 key={column.key as string}
-                className="table-header px-6 py-3 text-left"
+                className="table-header px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
               >
                 {column.label}
               </th>
@@ -36,11 +36,14 @@ export default function GenericList<T>({
           }`}
         >
           {data.map((row, i) => (
-            <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+            <tr
+              key={i}
+              className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors"
+            >
               {columns.map((column) => (
                 <td
                   key={`${i}-${column.key as string}`}
-                  className="table-cell px-6 py-4 whitespace-nowrap"
+                  className="table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300"
                 >
                   {column.renderCell
                     ? column.renderCell(row)
@@ -53,7 +56,7 @@ export default function GenericList<T>({
       </table>
       {isLoading && (
         <div className="absolute inset-0 bg-white/50 dark:bg-gray-900/50 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>
       )}
     </div>

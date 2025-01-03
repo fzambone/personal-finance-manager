@@ -10,6 +10,7 @@ export default {
   theme: {
     extend: {
       colors: {
+        primary: "#0891b2",
         sidebar: {
           bg: "#ffffff",
           hover: "#f1f5f9",

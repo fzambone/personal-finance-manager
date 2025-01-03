@@ -105,6 +105,7 @@ export default function TransactionActions({
         onClose={handleCloseEdit}
         title="Edit Transaction"
         description={`Edit details for transaction "${data.name}"`}
+        size="2xl"
       >
         <TransactionForm
           transaction={data}

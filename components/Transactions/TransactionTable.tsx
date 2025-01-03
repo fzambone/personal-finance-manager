@@ -38,12 +38,11 @@ export default function TransactionTable({
       key: "date",
       label: "Date",
       renderCell: (row: Transaction) => {
-        // Split the date string and create a date object in local timezone
         const [year, month, day] = row.date.split("-").map(Number);
         const date = new Date(year, month - 1, day);
 
         return (
-          <span className="table-cell">
+          <span className="text-gray-600 dark:text-gray-300">
             {date.toLocaleDateString("en-GB", {
               day: "2-digit",
               month: "2-digit",
@@ -53,7 +52,13 @@ export default function TransactionTable({
         );
       },
     },
-    { key: "user", label: "User" },
+    {
+      key: "user",
+      label: "User",
+      renderCell: (row: Transaction) => (
+        <span className="text-gray-600 dark:text-gray-300">{row.user}</span>
+      ),
+    },
     {
       key: "name",
       label: "Description",
@@ -64,7 +69,9 @@ export default function TransactionTable({
             type={row.type === "EXPENSE" ? "expense" : "income"}
             className="w-2 h-2 rounded-full p-0"
           />
-          <span>{row.name}</span>
+          <span className="text-gray-700 dark:text-gray-200 font-medium">
+            {row.name}
+          </span>
         </div>
       ),
     },
@@ -73,14 +80,32 @@ export default function TransactionTable({
       label: "Amount",
       renderCell: (row: Transaction) => (
         <span
-          className={row.type === "EXPENSE" ? "text-red-600" : "text-green-600"}
+          className={
+            row.type === "EXPENSE"
+              ? "text-rose-600 dark:text-rose-500 font-medium"
+              : "text-emerald-600 dark:text-emerald-400 font-medium"
+          }
         >
           {formatCurrency(row.amount)}
         </span>
       ),
     },
-    { key: "category", label: "Category" },
-    { key: "paymentMethod", label: "Payment Method" },
+    {
+      key: "category",
+      label: "Category",
+      renderCell: (row: Transaction) => (
+        <span className="text-gray-600 dark:text-gray-300">{row.category}</span>
+      ),
+    },
+    {
+      key: "paymentMethod",
+      label: "Payment Method",
+      renderCell: (row: Transaction) => (
+        <span className="text-gray-600 dark:text-gray-300">
+          {row.paymentMethod}
+        </span>
+      ),
+    },
     {
       key: "status",
       label: "Status",
@@ -88,7 +113,7 @@ export default function TransactionTable({
         <Badge
           variant="status"
           type={row.status.toLowerCase() as StatusType}
-          className="px-2.5 py-0.5 rounded-full text-xs font-medium"
+          className="px-2.5 py-0.5 rounded-full text-xs font-medium capitalize"
         />
       ),
     },

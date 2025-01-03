@@ -15,6 +15,10 @@
       Roboto, "Helvetica Neue", sans-serif;
   }
 
+  body.modal-open .sidebar-blur {
+    @apply backdrop-blur-md bg-opacity-80 dark:bg-opacity-80;
+  }
+
   /* Typography scale */
   h1 {
     @apply text-4xl font-semibold tracking-tight md:text-5xl;

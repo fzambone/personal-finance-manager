@@ -17,12 +17,15 @@ function TransactionFormFields({
 }: TransactionFormFieldsProps) {
   const fields: Field[] = useMemo(
     () => [
+      // Primary Information Group
       {
-        name: "name",
-        label: "Description",
-        type: "text",
-        value: transaction.name,
+        name: "type_id",
+        label: "Type",
+        type: "select",
+        value: transaction.type_id,
+        options: formOptions.types,
         required: true,
+        className: "col-span-2",
       },
       {
         name: "amount",
@@ -32,6 +35,7 @@ function TransactionFormFields({
         required: true,
         placeholder: "R$ 0,00",
         inputMode: "numeric",
+        className: "col-span-2",
       },
       {
         name: "date",
@@ -39,15 +43,20 @@ function TransactionFormFields({
         type: "date",
         value: transaction.date,
         required: true,
+        className: "col-span-2",
       },
+
+      // Description Group
       {
-        name: "type_id",
-        label: "Type",
-        type: "select",
-        value: transaction.type_id,
-        options: formOptions.types,
+        name: "name",
+        label: "Description",
+        type: "text",
+        value: transaction.name,
         required: true,
+        className: "col-span-full",
       },
+
+      // Classification Group
       {
         name: "category_id",
         label: "Category",
@@ -55,6 +64,7 @@ function TransactionFormFields({
         value: transaction.category_id,
         options: formOptions.categories,
         required: true,
+        className: "col-span-3",
       },
       {
         name: "payment_method_id",
@@ -63,6 +73,7 @@ function TransactionFormFields({
         value: transaction.payment_method_id,
         options: formOptions.paymentMethods,
         required: true,
+        className: "col-span-3",
       },
     ],
     [

@@ -3,6 +3,7 @@ import SectionHeading from "@/components/Sidebar/SectionHeading";
 import SidebarContainer from "@/components/Sidebar/SidebarContainer";
 import SidebarHero from "@/components/Sidebar/SidebarHero";
 import { SidebarProvider } from "@/components/Sidebar/SidebarContext";
+import { ModalProvider } from "@/components/Generic/ModalContext";
 import {
   CurrencyDollarIcon,
   HomeIcon,
@@ -31,27 +32,26 @@ export default function InternalLayout({
   ];
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex bg-gray-50 dark:bg-gray-900">
-        <SidebarContainer>
-          <SidebarHero />
-          <nav className="mt-6 flex-1 space-y-1 px-2">
-            {navigation.map((item) => (
-              <NavbarItem
-                key={item.href}
-                icon={<item.icon className="w-6 h-6" />}
-                label={item.label}
-                href={item.href}
-                count={item.count}
-              />
-            ))}
-          </nav>
-          {/* <div className="flex-shrink-0 p-4 border-t border-gray-200 dark:border-gray-800">
-            <SectionHeading title="Your Teams" hasDivider={false} />
-          </div> */}
-        </SidebarContainer>
-        <MainContent>{children}</MainContent>
-      </div>
-    </SidebarProvider>
+    <ModalProvider>
+      <SidebarProvider>
+        <div className="min-h-screen flex bg-gray-50 dark:bg-gray-900">
+          <SidebarContainer>
+            <SidebarHero />
+            <nav className="mt-6 flex-1 space-y-1 px-2">
+              {navigation.map((item) => (
+                <NavbarItem
+                  key={item.href}
+                  icon={<item.icon className="w-6 h-6" />}
+                  label={item.label}
+                  href={item.href}
+                  count={item.count}
+                />
+              ))}
+            </nav>
+          </SidebarContainer>
+          <MainContent>{children}</MainContent>
+        </div>
+      </SidebarProvider>
+    </ModalProvider>
   );
 }
