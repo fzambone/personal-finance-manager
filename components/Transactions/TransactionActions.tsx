@@ -8,7 +8,7 @@ import TransactionForm from "./TransactionForm";
 import { Transaction } from "@/app/types/transaction";
 import GenericActionMenu from "@/components/Generic/ActionMenu";
 import { toast } from "react-hot-toast";
-import { TransactionError } from "@/services/domain/transactions";
+import { handleError } from "@/utils/error-handling";
 
 type FormOptions = {
   types: { label: string; value: string }[];
@@ -52,16 +52,10 @@ export default function TransactionActions({
       await deleteTransaction(id);
       toast.success("Transaction deleted successfully");
     } catch (error) {
-      console.error("Failed to delete transaction:", error);
-      if (error instanceof TransactionError) {
-        toast.error(error.message);
-      } else {
-        toast.error("Failed to delete transaction. Please try again.");
-      }
-      // Reload the page only if it's a critical error
-      if (!(error instanceof TransactionError)) {
-        window.location.reload();
-      }
+      handleError(error, {
+        defaultMessage: "Failed to delete transaction. Please try again.",
+        shouldReload: true,
+      });
     } finally {
       setIsDeleting(false);
     }

@@ -1,5 +1,3 @@
-import { safeDisplay } from "@/utils/display";
-
 type GenericListProps<T> = {
   data: T[];
   columns: Columns<T>[];
@@ -7,7 +5,7 @@ type GenericListProps<T> = {
 };
 
 export type Columns<T> = {
-  key: keyof T & string;
+  key: keyof T | string;
   label: string;
   renderCell?: (row: T) => React.ReactNode;
 };

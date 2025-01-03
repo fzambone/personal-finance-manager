@@ -2,7 +2,7 @@
 
 import { Menu, Transition } from "@headlessui/react";
 import { EllipsisVerticalIcon } from "@heroicons/react/24/outline";
-import { Fragment, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 
 type Action = {
   label: string;
@@ -15,25 +15,33 @@ type ActionMenuProps = {
 };
 
 export default function GenericActionMenu({ actions }: ActionMenuProps) {
-  const [showAbove, setShowAbove] = useState(false);
+  const [position, setPosition] = useState<"up" | "down">("down");
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
-  const checkPosition = () => {
-    if (buttonRef.current && menuRef.current) {
-      const buttonRect = buttonRef.current.getBoundingClientRect();
-      const menuHeight = 120; // Approximate height of menu with 2 items
-      const spaceBelow = window.innerHeight - buttonRect.bottom;
+  const checkPosition = useCallback(() => {
+    if (!menuRef.current) return;
 
-      setShowAbove(spaceBelow < menuHeight);
-    }
-  };
+    const rect = menuRef.current.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    setPosition(spaceBelow < 100 ? "up" : "down");
+  }, []);
 
   useEffect(() => {
     checkPosition();
-    window.addEventListener("scroll", checkPosition);
-    return () => window.removeEventListener("scroll", checkPosition);
-  }, []);
+
+    const handleScroll = () => {
+      window.requestAnimationFrame(checkPosition);
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("resize", handleScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleScroll);
+    };
+  }, [checkPosition]);
 
   return (
     <Menu as="div" className="relative inline-block text-left">
@@ -65,7 +73,7 @@ export default function GenericActionMenu({ actions }: ActionMenuProps) {
                 absolute z-50 w-56 rounded-md bg-white dark:bg-gray-800 
                 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none 
                 divide-y divide-gray-100 dark:divide-gray-700 right-0
-                ${showAbove ? "bottom-full mb-2" : "top-full mt-2"}
+                ${position === "up" ? "bottom-full mb-2" : "top-full mt-2"}
               `}
             >
               <div className="py-1">

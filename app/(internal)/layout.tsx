@@ -2,10 +2,7 @@ import NavbarItem from "@/components/Sidebar/NavItem";
 import SectionHeading from "@/components/Sidebar/SectionHeading";
 import SidebarContainer from "@/components/Sidebar/SidebarContainer";
 import SidebarHero from "@/components/Sidebar/SidebarHero";
-import {
-  SidebarProvider,
-  useSidebar,
-} from "@/components/Sidebar/SidebarContext";
+import { SidebarProvider } from "@/components/Sidebar/SidebarContext";
 import {
   CurrencyDollarIcon,
   HomeIcon,

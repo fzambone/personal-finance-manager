@@ -1,10 +1,13 @@
 "use server";
 
 import { Transaction } from "../types/transaction";
-import { TransactionService } from "@/services/domain/transactions";
+import {
+  getTransactionFormOptions as getFormOptions,
+  getTransactions as getTransactionsList,
+  updateTransaction as updateTransactionData,
+  deleteTransaction as deleteTransactionData,
+} from "@/services/domain/transactions";
 import type { FormOptions } from "@/services/domain/transactions";
-
-const transactionService = new TransactionService();
 
 export async function getTransactions(
   page?: number,
@@ -23,20 +26,20 @@ export async function getTransactions(
   totalPages: number;
   totalItems: number;
 }> {
-  return transactionService.getTransactions(page, itemsPerPage, filters);
+  return getTransactionsList(page, itemsPerPage, filters);
 }
 
 export async function getTransactionFormOptions(): Promise<FormOptions> {
-  return transactionService.getTransactionFormOptions();
+  return getFormOptions();
 }
 
 export async function updateTransaction(
   id: string,
   data: Partial<Transaction>
 ): Promise<void> {
-  return transactionService.updateTransaction(id, data);
+  return updateTransactionData(id, data);
 }
 
 export async function deleteTransaction(id: string): Promise<void> {
-  return transactionService.deleteTransaction(id);
+  return deleteTransactionData(id);
 }
