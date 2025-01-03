@@ -6,6 +6,7 @@ import {
   getTransactions as getTransactionsList,
   updateTransaction as updateTransactionData,
   deleteTransaction as deleteTransactionData,
+  createTransaction as createTransactionData,
 } from "@/services/domain/transactions";
 import type { FormOptions } from "@/services/domain/transactions";
 import { revalidateTag } from "next/cache";
@@ -64,3 +65,24 @@ export async function deleteTransaction(id: string): Promise<void> {
     return Promise.reject(error);
   }
 }
+
+export const createTransaction = withLogging(
+  "createTransaction",
+  async (data: Partial<Transaction>): Promise<Transaction> => {
+    try {
+      // Set the hardcoded user ID for new transactions
+      const transactionData = {
+        ...data,
+        user_id: "d95ba6de-fce1-4fe9-92d7-88558dafce0a",
+      };
+
+      // Create the transaction (status will be set to APPROVED in the domain service)
+      const result = await createTransactionData(transactionData);
+      revalidateTag("transactions");
+      return result; // Return the created transaction for optimistic updates
+    } catch (error) {
+      console.error("Failed to create transaction:", error);
+      throw error;
+    }
+  }
+);

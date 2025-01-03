@@ -7,144 +7,105 @@ import {
   updateTransaction,
   deleteTransaction,
 } from "@/app/actions/transactions";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import type { FormOptions } from "@/services/domain/transactions";
 import { FilterState } from "@/components/Generic/FilterBar";
 import useSWR from "swr";
 export type { FormOptions };
 
-export function useTransactionList(
-  page: number = 1,
-  itemsPerPage: number = 10
-) {
+export function useTransactionList(currentPage: number, itemsPerPage: number) {
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [formOptions, setFormOptions] = useState<FormOptions | null>(null);
-  const [filters, setFilters] = useState<FilterState>({});
-  const [optimisticUpdates, setOptimisticUpdates] = useState<
-    Map<string, Transaction>
-  >(new Map());
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [totalPages, setTotalPages] = useState(1);
 
-  const cacheKey = JSON.stringify([
-    "transactions",
-    page,
-    itemsPerPage,
-    filters,
-  ]);
+  // Fetch transactions and form options
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        const [transactionsResult, options] = await Promise.all([
+          getTransactions(currentPage, itemsPerPage),
+          getTransactionFormOptions(),
+        ]);
 
-  const { data, error, isLoading, mutate } = useSWR(cacheKey, async () => {
-    const [transactionsData, options] = await Promise.all([
-      getTransactions(page, itemsPerPage, filters),
-      getTransactionFormOptions(),
-    ]);
-    setFormOptions(options);
-    return transactionsData;
-  });
-
-  const handleUpdateTransaction = async (
-    id: string,
-    updatedData: Partial<Transaction>
-  ) => {
-    if (!data) return;
-
-    // Store the original transaction for potential rollback
-    const originalTransaction = data.data.find((t) => t.id === id);
-    if (!originalTransaction) return;
-
-    // Save the original state for rollback
-    setOptimisticUpdates((prev) => new Map(prev).set(id, originalTransaction));
-
-    // Create optimistic data
-    const optimisticData = {
-      ...data,
-      data: data.data.map((transaction) =>
-        transaction.id === id ? { ...transaction, ...updatedData } : transaction
-      ),
-    };
-
-    try {
-      // Update the UI immediately
-      await mutate(optimisticData, false);
-
-      // Clear the optimistic update after successful server update
-      setOptimisticUpdates((prev) => {
-        const newMap = new Map(prev);
-        newMap.delete(id);
-        return newMap;
-      });
-    } catch (err) {
-      console.error("Failed to update transaction:", err);
-
-      // If there was an error, rollback to the original state
-      if (optimisticUpdates.has(id)) {
-        const originalTransaction = optimisticUpdates.get(id)!;
-        await mutate(
-          {
-            ...data,
-            data: data.data.map((transaction) =>
-              transaction.id === id ? originalTransaction : transaction
-            ),
-          },
-          false
-        );
-
-        // Clear the failed optimistic update
-        setOptimisticUpdates((prev) => {
-          const newMap = new Map(prev);
-          newMap.delete(id);
-          return newMap;
-        });
+        setTransactions(transactionsResult.data);
+        setTotalPages(transactionsResult.totalPages);
+        setFormOptions(options);
+        setError(null);
+      } catch (error) {
+        console.error("Failed to fetch transactions:", error);
+        setError("Failed to load transactions");
+      } finally {
+        setIsLoading(false);
       }
-      throw err;
-    }
-  };
-
-  const handleDeleteTransaction = async (id: string) => {
-    if (!data) return;
-
-    // Create optimistic data
-    const optimisticData = {
-      ...data,
-      data: data.data.filter((transaction) => transaction.id !== id),
-      totalItems: data.totalItems - 1,
-      totalPages: Math.ceil((data.totalItems - 1) / itemsPerPage),
     };
 
-    try {
-      // Start optimistic update
-      await mutate(optimisticData, false);
+    fetchData();
+  }, [currentPage, itemsPerPage]);
 
-      // Perform the actual delete
-      await deleteTransaction(id);
+  const handleUpdateTransaction = useCallback(
+    (id: string, updatedData: Partial<Transaction> | undefined) => {
+      setTransactions((prevTransactions) => {
+        if (!updatedData) {
+          // Remove the transaction if updatedData is undefined (for rollback)
+          return prevTransactions.filter((t) => t.id !== id);
+        }
 
-      // Revalidate after successful delete
-      await mutate();
-    } catch (err) {
-      // If error occurs, revalidate to get the correct state
-      await mutate();
-      throw err;
-    }
-  };
+        const existingIndex = prevTransactions.findIndex((t) => t.id === id);
+        if (existingIndex === -1) {
+          // If it's a new transaction, add it to the beginning
+          const newTransaction = updatedData as Transaction;
+          return [newTransaction, ...prevTransactions];
+        }
 
-  const handleFilterChange = (newFilters: FilterState) => {
-    setFilters(newFilters);
-  };
+        // Otherwise update the existing transaction
+        const updatedTransactions = [...prevTransactions];
+        updatedTransactions[existingIndex] = {
+          ...updatedTransactions[existingIndex],
+          ...updatedData,
+        };
+        return updatedTransactions;
+      });
+    },
+    []
+  );
 
-  // Apply optimistic updates to the data before returning
-  const transactions =
-    data?.data.map((transaction) => {
-      const optimisticUpdate = optimisticUpdates.get(transaction.id);
-      return optimisticUpdate || transaction;
-    }) || [];
+  const handleDeleteTransaction = useCallback((id: string) => {
+    setTransactions((prev) => prev.filter((t) => t.id !== id));
+  }, []);
+
+  const handleFilterChange = useCallback(
+    async (filters: any) => {
+      try {
+        setIsLoading(true);
+        const result = await getTransactions(
+          currentPage,
+          itemsPerPage,
+          filters
+        );
+        setTransactions(result.data);
+        setTotalPages(result.totalPages);
+        setError(null);
+      } catch (error) {
+        console.error("Failed to filter transactions:", error);
+        setError("Failed to filter transactions");
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [currentPage, itemsPerPage]
+  );
 
   return {
     transactions,
-    totalPages: data?.totalPages ?? 0,
-    totalItems: data?.totalItems ?? 0,
     formOptions,
     isLoading,
-    error: error?.message,
+    error,
+    totalPages,
     handleUpdateTransaction,
     handleDeleteTransaction,
     handleFilterChange,
-    filters,
   };
 }

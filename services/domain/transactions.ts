@@ -205,3 +205,104 @@ export async function updateTransaction(
     throw new TransactionError("Failed to update transaction");
   }
 }
+
+/**
+ * Gets the ID of the APPROVED status from the transaction_status table
+ * @returns Promise<string> The ID of the APPROVED status
+ * @throws TransactionError if the APPROVED status is not found
+ */
+async function getApprovedStatusId(): Promise<string> {
+  const status = await prisma.transaction_status.findFirst({
+    where: {
+      name: "APPROVED",
+      deleted_at: null,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!status) {
+    throw new TransactionError("APPROVED status not found");
+  }
+
+  return status.id;
+}
+
+/**
+ * Creates a new transaction with APPROVED status
+ * @param data Partial transaction data
+ * @returns Promise<Transaction> The created transaction
+ * @throws TransactionError if required fields are missing or if creation fails
+ */
+export async function createTransaction(
+  data: Partial<Transaction>
+): Promise<Transaction> {
+  try {
+    console.log("Creating transaction:", data);
+
+    // Get the approved status ID
+    const statusId = await getApprovedStatusId();
+
+    // Validate required fields
+    if (
+      !data.name ||
+      !data.date ||
+      !data.type_id ||
+      !data.category_id ||
+      !data.payment_method_id ||
+      !data.user_id
+    ) {
+      throw new TransactionError(
+        "Missing required fields for transaction creation"
+      );
+    }
+
+    // Create the transaction
+    const result = await prisma.transactions.create({
+      data: {
+        description: data.name,
+        amount: data.amount || 0,
+        transaction_date: data.date,
+        type_id: data.type_id,
+        category_id: data.category_id,
+        payment_method_id: data.payment_method_id,
+        user_id: data.user_id,
+        status_id: statusId,
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+      include: {
+        users: true,
+        categories: true,
+        payment_methods: true,
+        transaction_types: true,
+        transaction_status: true,
+      },
+    });
+
+    // Format the transaction to match our Transaction type
+    const formattedTransaction: Transaction = {
+      id: result.id,
+      user_id: result.user_id,
+      type_id: result.type_id,
+      category_id: result.category_id,
+      payment_method_id: result.payment_method_id,
+      status_id: result.status_id,
+      date: result.transaction_date,
+      user: `${result.users.first_name} ${result.users.last_name}`,
+      name: result.description || "",
+      amount: result.amount,
+      type: result.transaction_types.name,
+      category: result.categories.name,
+      paymentMethod: result.payment_methods.name,
+      status: result.transaction_status.name.toLowerCase(),
+    };
+
+    console.log("Create result:", formattedTransaction);
+    return formattedTransaction;
+  } catch (error) {
+    console.error("Failed to create transaction:", error);
+    throw new TransactionError("Failed to create transaction");
+  }
+}

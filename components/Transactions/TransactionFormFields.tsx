@@ -1,13 +1,13 @@
 import { Transaction } from "@/app/types/transaction";
 import { formatCurrency } from "@/utils/formatCurrency";
-import { Field } from "../Generic/Form";
+import { FormField } from "../Generic/Form";
 import { FormOptions } from "./hooks/useTransactionList";
 import { memo, useEffect, useMemo } from "react";
 
 type TransactionFormFieldsProps = {
   transaction: Transaction;
   formOptions: FormOptions;
-  onFieldsChange: (fields: Field[]) => void;
+  onFieldsChange: (fields: FormField[]) => void;
 };
 
 function TransactionFormFields({
@@ -15,7 +15,7 @@ function TransactionFormFields({
   formOptions,
   onFieldsChange,
 }: TransactionFormFieldsProps) {
-  const fields: Field[] = useMemo(
+  const fields: FormField[] = useMemo(
     () => [
       // Primary Information Group
       {
