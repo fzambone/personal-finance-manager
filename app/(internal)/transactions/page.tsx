@@ -17,9 +17,9 @@ export default function TransactionsPage() {
     isLoading,
     error,
     totalPages,
-    onUpdate,
-    onDelete,
-    onFilterChange,
+    handleUpdateTransaction,
+    handleDeleteTransaction,
+    handleFilterChange,
   } = useTransactionList(currentPage, ITEMS_PER_PAGE);
 
   const handlePageChange = (page: number) => {
@@ -35,7 +35,10 @@ export default function TransactionsPage() {
       </div>
 
       {formOptions && (
-        <FilterBar formOptions={formOptions} onFilterChange={onFilterChange} />
+        <FilterBar
+          formOptions={formOptions}
+          onFilterChange={handleFilterChange}
+        />
       )}
 
       {error ? (
@@ -46,16 +49,15 @@ export default function TransactionsPage() {
             data={transactions || []}
             formOptions={formOptions}
             isLoading={isLoading}
-            onUpdate={onUpdate}
-            onDelete={onDelete}
+            onUpdate={handleUpdateTransaction}
+            onDelete={handleDeleteTransaction}
           />
-          {!isLoading && totalPages > 1 && (
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={handlePageChange}
-            />
-          )}
+
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+          />
         </>
       )}
     </div>

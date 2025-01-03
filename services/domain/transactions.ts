@@ -78,6 +78,7 @@ export async function getTransactions(
       }),
     };
 
+    const cacheKey = JSON.stringify({ page, itemsPerPage, filters });
     const [transactions, totalItems] = await Promise.all([
       prisma.transactions.findMany({
         where,
@@ -184,7 +185,8 @@ export async function updateTransaction(
   data: Partial<Transaction>
 ): Promise<void> {
   try {
-    await prisma.transactions.update({
+    console.log("Updating transaction:", { id, data });
+    const result = await prisma.transactions.update({
       where: { id },
       data: {
         description: data.name,
@@ -193,9 +195,11 @@ export async function updateTransaction(
         type_id: data.type_id,
         category_id: data.category_id,
         payment_method_id: data.payment_method_id,
+        status_id: data.status_id,
         updated_at: new Date(),
       },
     });
+    console.log("Update result:", result);
   } catch (error) {
     console.error("Failed to update transaction:", error);
     throw new TransactionError("Failed to update transaction");

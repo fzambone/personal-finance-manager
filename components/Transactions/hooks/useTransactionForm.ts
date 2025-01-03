@@ -29,8 +29,9 @@ export function useTransactionForm(
 
   const handleSubmit = useCallback(
     async (data: TransactionFormData) => {
-      const toastId = toast.loading("Updating transaction...");
+      if (isSubmitting) return;
       setIsSubmitting(true);
+
       try {
         const amountInCents = parseCurrencyInput(data.amount);
         if (isNaN(amountInCents)) {
@@ -68,41 +69,36 @@ export function useTransactionForm(
             )?.label || transaction.paymentMethod,
         };
 
-        // Optimistically update the UI
+        // Update UI optimistically and close modal immediately
         onOptimisticUpdate(transaction.id, updatedData);
-
-        // Close the modal
         onClose();
 
-        // Then perform the actual update
+        // Show loading toast
+        const toastId = toast.loading("Saving changes...");
+
+        // Perform the actual update in the background
         await updateTransaction(transaction.id, {
           ...data,
           amount: amountInCents,
         });
 
+        // Show success message
         toast.success("Transaction updated successfully", { id: toastId });
       } catch (error) {
         console.error("Failed to update transaction:", error);
+        // Show error message
         toast.error(
           error instanceof Error
             ? error.message
-            : "Failed to update transaction",
-          { id: toastId }
+            : "Failed to update transaction. Changes will be reverted."
         );
-        // Reload the page if the update fails to reset the state
-        window.location.reload();
+        // Trigger a revalidation to revert the optimistic update
+        onOptimisticUpdate(transaction.id, transaction);
       } finally {
         setIsSubmitting(false);
       }
     },
-    [
-      transaction.id,
-      formOptions,
-      onClose,
-      onOptimisticUpdate,
-      transaction.category,
-      transaction.paymentMethod,
-    ]
+    [isSubmitting, transaction, formOptions, onClose, onOptimisticUpdate]
   );
 
   return {

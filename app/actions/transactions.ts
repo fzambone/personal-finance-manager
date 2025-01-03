@@ -8,6 +8,7 @@ import {
   deleteTransaction as deleteTransactionData,
 } from "@/services/domain/transactions";
 import type { FormOptions } from "@/services/domain/transactions";
+import { revalidateTag } from "next/cache";
 
 export async function getTransactions(
   page?: number,
@@ -26,7 +27,8 @@ export async function getTransactions(
   totalPages: number;
   totalItems: number;
 }> {
-  return getTransactionsList(page, itemsPerPage, filters);
+  const result = await getTransactionsList(page, itemsPerPage, filters);
+  return result;
 }
 
 export async function getTransactionFormOptions(): Promise<FormOptions> {
@@ -37,9 +39,21 @@ export async function updateTransaction(
   id: string,
   data: Partial<Transaction>
 ): Promise<void> {
-  return updateTransactionData(id, data);
+  try {
+    await updateTransactionData(id, data);
+    revalidateTag("transactions");
+    return Promise.resolve();
+  } catch (error) {
+    return Promise.reject(error);
+  }
 }
 
 export async function deleteTransaction(id: string): Promise<void> {
-  return deleteTransactionData(id);
+  try {
+    await deleteTransactionData(id);
+    revalidateTag("transactions");
+    return Promise.resolve();
+  } catch (error) {
+    return Promise.reject(error);
+  }
 }
