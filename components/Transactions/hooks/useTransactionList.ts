@@ -6,10 +6,10 @@ import {
   getTransactionFormOptions,
   updateTransaction,
   deleteTransaction,
-} from "@/app/actions/transactions";
+  type FilterOptions,
+} from "@/services/domain/transactions";
 import { useState, useEffect, useCallback } from "react";
 import type { FormOptions } from "../types";
-import { FilterState } from "@/components/Generic/FilterBar";
 import useSWR from "swr";
 export type { FormOptions };
 
@@ -77,7 +77,7 @@ export function useTransactionList(currentPage: number, itemsPerPage: number) {
   }, []);
 
   const handleFilterChange = useCallback(
-    async (filters: any) => {
+    async (filters: FilterOptions) => {
       try {
         setIsLoading(true);
         const result = await getTransactions(

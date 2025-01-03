@@ -165,12 +165,23 @@ export async function getTransactionFormOptions(
 
 export async function deleteTransaction(id: string): Promise<void> {
   try {
+    const transaction = await prisma.transactions.findUnique({
+      where: { id, deleted_at: null },
+    });
+
+    if (!transaction) {
+      throw new TransactionError("Transaction not found");
+    }
+
     await prisma.transactions.update({
       where: { id },
       data: { deleted_at: new Date() },
     });
   } catch (error) {
     console.error("Failed to delete transaction:", error);
+    if (error instanceof TransactionError) {
+      throw error;
+    }
     throw new TransactionError("Failed to delete transaction");
   }
 }
@@ -180,6 +191,14 @@ export async function updateTransaction(
   data: Partial<Transaction>
 ): Promise<void> {
   try {
+    const transaction = await prisma.transactions.findUnique({
+      where: { id, deleted_at: null },
+    });
+
+    if (!transaction) {
+      throw new TransactionError("Transaction not found");
+    }
+
     console.log("Updating transaction:", { id, data });
     const result = await prisma.transactions.update({
       where: { id },
@@ -190,13 +209,15 @@ export async function updateTransaction(
         type_id: data.type_id,
         category_id: data.category_id,
         payment_method_id: data.payment_method_id,
-        status_id: data.status_id,
         updated_at: new Date(),
       },
     });
     console.log("Update result:", result);
   } catch (error) {
     console.error("Failed to update transaction:", error);
+    if (error instanceof TransactionError) {
+      throw error;
+    }
     throw new TransactionError("Failed to update transaction");
   }
 }

@@ -7,8 +7,7 @@ import Modal from "../Generic/Modal";
 import TransactionForm from "./TransactionForm";
 import { Transaction } from "@/app/types/transaction";
 import GenericActionMenu from "@/components/Generic/ActionMenu";
-import { toast } from "react-hot-toast";
-import { handleError } from "@/app/core/errors/handler";
+import { notificationService } from "@/app/services/ui/notifications";
 
 type FormOptions = {
   types: { label: string; value: string }[];
@@ -45,24 +44,55 @@ export default function TransactionActions({
   const [isDeleting, setIsDeleting] = useState(false);
 
   const handleDelete = useCallback(async () => {
+    if (isDeleting) return;
+
     try {
       setIsDeleting(true);
+      const loadingToastId = notificationService.loading(
+        "Deleting transaction..."
+      );
+
       // Optimistically remove from UI
       onOptimisticDelete(id);
       // Close the dialog
       setShowDeleteDialog(false);
-      // Then perform the actual delete
-      await deleteTransaction(id);
-      toast.success("Transaction deleted successfully");
+
+      try {
+        // Then perform the actual delete
+        await deleteTransaction(id);
+        notificationService.dismiss(loadingToastId);
+        notificationService.success("Transaction deleted successfully");
+      } catch (error) {
+        notificationService.dismiss(loadingToastId);
+        // Revert optimistic update since the deletion failed
+        onOptimisticUpdate(id, data);
+
+        if (error instanceof Error) {
+          if (error.message.includes("Record to update not found")) {
+            notificationService.error(
+              "Transaction not found. It may have been deleted."
+            );
+          } else {
+            notificationService.error(
+              error.message || "Failed to delete transaction. Please try again."
+            );
+          }
+        } else {
+          notificationService.error(
+            "Failed to delete transaction. Please try again."
+          );
+        }
+      }
     } catch (error) {
-      handleError(error, {
-        defaultMessage: "Failed to delete transaction. Please try again.",
-        shouldReload: true,
-      });
+      if (error instanceof Error) {
+        notificationService.error(error.message);
+      } else {
+        notificationService.error("An unexpected error occurred");
+      }
     } finally {
       setIsDeleting(false);
     }
-  }, [id, onOptimisticDelete]);
+  }, [id, data, onOptimisticDelete, onOptimisticUpdate, isDeleting]);
 
   const handleEdit = useCallback(async () => {
     setShowEditModal(true);

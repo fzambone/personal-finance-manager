@@ -4,8 +4,8 @@ import {
   createTransaction,
 } from "@/app/actions/transactions";
 import { useState, useCallback } from "react";
-import { toast } from "react-hot-toast";
 import { FormOptions } from "./useTransactionList";
+import { notificationService } from "@/app/services/ui/notifications";
 
 export type TransactionFormData = {
   name: string;
@@ -37,16 +37,26 @@ export function useTransactionForm(
   const handleSubmit = useCallback(
     async (data: TransactionFormData) => {
       if (isSubmitting) return;
-      setIsSubmitting(true);
 
       try {
+        setIsSubmitting(true);
+        const loadingToastId = notificationService.loading(
+          isNewTransaction
+            ? "Creating transaction..."
+            : "Updating transaction..."
+        );
+
         const amountInCents = parseCurrencyInput(data.amount);
         if (isNaN(amountInCents)) {
-          throw new Error("Invalid amount format");
+          notificationService.dismiss(loadingToastId);
+          notificationService.error("Invalid amount format");
+          return;
         }
 
         if (!formOptions) {
-          throw new Error("Form options not loaded");
+          notificationService.dismiss(loadingToastId);
+          notificationService.error("Form options not loaded");
+          return;
         }
 
         // Get the selected type's label
@@ -55,7 +65,9 @@ export function useTransactionForm(
           ?.label.toUpperCase();
 
         if (!selectedType) {
-          throw new Error("Invalid transaction type");
+          notificationService.dismiss(loadingToastId);
+          notificationService.error("Invalid transaction type");
+          return;
         }
 
         // Get category and payment method labels
@@ -68,9 +80,10 @@ export function useTransactionForm(
           )?.label || "";
 
         if (isNewTransaction) {
-          // Create optimistic transaction data
+          // Create optimistic transaction data with a temporary ID
+          const optimisticId = crypto.randomUUID();
           const optimisticTransaction: Transaction = {
-            id: crypto.randomUUID(),
+            id: optimisticId,
             name: data.name,
             amount: amountInCents,
             date: data.date,
@@ -86,9 +99,9 @@ export function useTransactionForm(
             status: "approved",
           };
 
-          // Close modal and update UI immediately
+          // Close modal and update UI immediately with optimistic data
           onClose();
-          onOptimisticUpdate(optimisticTransaction.id, optimisticTransaction);
+          onOptimisticUpdate(optimisticId, optimisticTransaction);
 
           try {
             // Create the transaction in the background
@@ -103,82 +116,95 @@ export function useTransactionForm(
 
             const createdTransaction = await createTransaction(serverData);
 
-            // Replace the optimistic transaction with the real one
-            onOptimisticUpdate(optimisticTransaction.id, undefined);
+            // Remove the optimistic transaction and add the real one
+            onOptimisticUpdate(optimisticId, undefined);
             onOptimisticUpdate(createdTransaction.id, createdTransaction);
-            toast.success("Transaction created successfully");
+
+            notificationService.dismiss(loadingToastId);
+            notificationService.success("Transaction created successfully");
           } catch (error) {
-            console.error("Failed to create transaction:", error);
-            onOptimisticUpdate(optimisticTransaction.id, undefined);
-            toast.error(
-              error instanceof Error
-                ? error.message
-                : "Failed to create transaction. Please try again."
-            );
+            notificationService.dismiss(loadingToastId);
+            // Revert optimistic update
+            onOptimisticUpdate(optimisticId, undefined);
+
+            if (error instanceof Error) {
+              notificationService.error(error.message);
+            } else {
+              notificationService.error(
+                "Failed to create transaction. Please try again."
+              );
+            }
           }
         } else {
-          // Prepare update data
-          const updateData = {
+          // Update existing transaction
+          const updatedData = {
             name: data.name,
             amount: amountInCents,
             date: data.date,
             type_id: data.type_id,
             category_id: data.category_id,
             payment_method_id: data.payment_method_id,
+          };
+
+          // Close modal and update UI immediately
+          onClose();
+          const optimisticData = {
+            ...updatedData,
             type: selectedType,
             category,
             paymentMethod,
           };
-
-          // Update UI optimistically
-          onOptimisticUpdate(transaction.id, updateData);
-          onClose();
+          onOptimisticUpdate(transaction.id, optimisticData);
 
           try {
-            // Perform the actual update
-            await updateTransaction(transaction.id, {
-              ...data,
-              amount: amountInCents,
-            });
-            toast.success("Transaction updated successfully");
+            await updateTransaction(transaction.id, updatedData);
+            notificationService.dismiss(loadingToastId);
+            notificationService.success("Transaction updated successfully");
           } catch (error) {
-            console.error("Failed to update transaction:", error);
+            notificationService.dismiss(loadingToastId);
+            // Revert optimistic update
             onOptimisticUpdate(transaction.id, transaction);
-            toast.error(
-              error instanceof Error
-                ? error.message
-                : "Failed to update transaction. Please try again."
-            );
+
+            if (error instanceof Error) {
+              if (error.message.includes("Transaction not found")) {
+                notificationService.error(
+                  "Transaction not found. It may have been deleted."
+                );
+              } else {
+                notificationService.error(
+                  error.message ||
+                    "Failed to update transaction. Please try again."
+                );
+              }
+            } else {
+              notificationService.error(
+                "Failed to update transaction. Please try again."
+              );
+            }
           }
         }
       } catch (error) {
-        console.error(
-          `Failed to ${isNewTransaction ? "create" : "update"} transaction:`,
-          error
-        );
-        toast.error(
-          error instanceof Error
-            ? error.message
-            : `Failed to ${
-                isNewTransaction ? "create" : "update"
-              } transaction. Please try again.`
-        );
+        if (error instanceof Error) {
+          notificationService.error(error.message);
+        } else {
+          notificationService.error("An unexpected error occurred");
+        }
       } finally {
         setIsSubmitting(false);
       }
     },
     [
       isSubmitting,
+      isNewTransaction,
       transaction,
       formOptions,
       onClose,
       onOptimisticUpdate,
-      isNewTransaction,
     ]
   );
 
   return {
-    isSubmitting,
     handleSubmit,
+    isSubmitting,
   };
 }
